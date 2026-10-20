@@ -778,20 +778,26 @@ import { Iter } from '@rust-ts/iter'
 - [ ] 公开 API 均有示例。
 - [ ] 有明确的版本兼容与发布策略。
 
-## 16. 尚待决策
+## 16. 决策
 
-以下事项需要在正式实现前确定：
+### 16.1 已确定
 
-1. Option / Result 采用类、判别联合类型还是其他内部表示。
-2. `None` 是否采用单例。
-3. `Result.andThen` 对错误类型采用联合类型还是其他统一策略。
-4. `match` 是直接复用 ts-pattern，还是提供独立的公共适配 API。
-5. Iterator 是否必须支持异步迭代器。
-6. 是否提供与 neverthrow 的专用互操作包。
-7. 最低 TypeScript 和 Node.js 版本。
-8. 最终 npm scope 与项目名称。
-9. 是否接受自定义编译器转换。
-10. 是否需要与现有 Vite、Vitest 和 TypeScript 构建流程深度集成。
+1. `Option` 和 `Result` 使用私有构造器的类封装判别标签和值，公共 API 不暴露可变字段。
+2. `None` 使用单例；`Option.some(undefined)` 仍表示存在值，与 `None` 区分。
+3. `Result.andThen` 将前后错误类型合并为联合类型。`orElse` 允许恢复为不同成功类型，返回成功类型的联合，以便从 `Err` 直接恢复。
+4. `pattern` 以 ts-pattern 作为实现基础，通过独立包提供项目入口；依赖不进入 `core`。
+5. 首版 Iterator 仅实现同步迭代；异步场景使用原生 `AsyncIterator` / `AsyncIterable` 与 `Promise<Result<T, E>>`。
+6. 首版不提供 neverthrow 互操作包；只有出现明确需求后再评估适配。
+7. 最低 Node.js 版本为 `22.18.0`，最低 TypeScript 主版本为 `6.0`，与当前根配置一致。
+8. 子包使用 `@tsr/*` 命名。
+9. 稳定版不依赖自定义编译器转换；语法扩展继续留在独立的后续探索阶段。
+10. Vite+、Vitest 和 TypeScript 作为仓库开发工具，不成为运行时 API 的组成部分。
+
+### 16.2 后续评估
+
+- 发布前确认 npm scope 的可用性及发布权限。
+- 根据实际用户需求决定是否增加 neverthrow 适配。
+- 只有标准 JavaScript / TypeScript 工具无法满足需求时，才重新评估编译器转换。
 
 ## 17. 总结
 
