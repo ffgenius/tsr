@@ -5,6 +5,10 @@ settings:
   excludeLinksFromLockfile: false
 
 catalogs:
+  runtime:
+    ts-pattern:
+      specifier: ^5.9.2
+      version: 5.9.2
   tooling:
     tsx:
       specifier: ^4.22.3
@@ -62,6 +66,14 @@ importers:
       vitest:
         specifier: npm:@voidzero-dev/vite-plus-test@latest
         version: '@voidzero-dev/vite-plus-test@0.1.22(@types/node@26.0.1)(esbuild@0.27.3)(tsx@4.22.3)(typescript@6.0.3)(unrun@0.2.34)(vite@8.0.0-beta.16(@types/node@26.0.1)(esbuild@0.27.3)(tsx@4.22.3))'
+
+  packages/core: {}
+
+  packages/pattern:
+    dependencies:
+      ts-pattern:
+        specifier: catalog:runtime
+        version: 5.9.2
 
   packages/tools: {}
 
@@ -1419,6 +1431,9 @@ packages:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
     engines: {node: '>=6'}
 
+  ts-pattern@5.9.2:
+    resolution: {integrity: sha512-qAf+7M7Jjk7uebZeIo9uEzyintfuRtgHdzM9dqxRKcMi2dt76Ec+FH2wW3bnU9TuGLkZIJLoLs7cCQnU7Tu8ig==}
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -2493,6 +2508,8 @@ snapshots:
   tinypool@2.1.0: {}
 
   totalist@3.0.1: {}
+
+  ts-pattern@5.9.2: {}
 
   tslib@2.8.1:
     optional: true
