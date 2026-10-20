@@ -15,7 +15,7 @@ TypeScript 提供了强大的静态类型系统，但在日常开发中仍存在
 
 - 缺少原生的 `Option<T>` 和 `Result<T, E>` 类型约定。
 - 缺少 Rust 风格的模式匹配和穷尽性检查体验。
-- 缺少统一的类型转换协议，例如 `From`、`Into`、`TryFrom`。
+- 类型转换按具体场景实现，不额外模拟通用 Trait 协议。
 - 原生数组迭代器主要面向 JavaScript 生态，缺少与 Rust Iterator 一致的惰性组合 API。
 - 缺少统一的非空类型、非零类型、受限数值等类型安全抽象。
 - 错误处理、资源管理和函数组合缺少一套风格一致的公共 API。
@@ -75,7 +75,7 @@ TypeScript 提供了强大的静态类型系统，但在日常开发中仍存在
 
 - `Option`、`Result`
 - `match`
-- `From`、`Into`、`TryFrom`
+- `From`、`TryFrom`
 - `Default`、`Display`、`Clone`
 - `Iterator`
 - `NonZero`、`NonEmpty`
@@ -127,7 +127,6 @@ rust-ts-toolkit/
 ├── packages/
 │   ├── core/
 │   ├── pattern/
-│   ├── traits/
 │   ├── iter/
 │   ├── std/
 │   ├── effect/
@@ -146,36 +145,35 @@ rust-ts-toolkit/
 
 ### 3.1 模块职责
 
-| 模块 | 职责 | 优先级 |
-|---|---|---|
-| `core` | Option、Result、基础类型与错误处理 | P0 |
-| `pattern` | match、模式匹配、穷尽性检查 | P0 |
-| `traits` | 类型转换及行为协议 | P0 |
-| `iter` | 惰性迭代器、Range、数据组合 | P1 |
-| `std` | NonZero、NonEmpty、Cow 等工具类型 | P1 |
-| `effect` | 与 Effect 生态的适配 | P2 |
-| `transform` | 可选的编译器转换和语法扩展 | P3 |
+| 模块        | 职责                               | 优先级 |
+| ----------- | ---------------------------------- | ------ |
+| `core`      | Option、Result、基础类型与错误处理 | P0     |
+| `pattern`   | match、模式匹配、穷尽性检查        | P0     |
+| `iter`      | 惰性迭代器、Range、数据组合        | P1     |
+| `std`       | NonZero、NonEmpty、Cow 等工具类型  | P1     |
+| `effect`    | 与 Effect 生态的适配               | P2     |
+| `transform` | 可选的编译器转换和语法扩展         | P3     |
 
-第一阶段只要求完成 `core`、`pattern` 和 `traits`，其余模块在基础 API 稳定后开发。
+第一阶段完成 `core` 和 `pattern`。`@tsr/pattern` 依赖 `ts-pattern` 实现匹配，并提供项目稳定的公共入口。
 
 ### 3.2 依赖方向
 
 ```text
 core
- ├── pattern
- ├── traits
  ├── iter
  └── std
 
+pattern ──> ts-pattern
+
 effect ──> core adapters
 
-transform ──> core / pattern conventions
+transform ──> core conventions
 ```
 
 约束：
 
-- `core` 不依赖 `pattern`、`iter`、`effect` 或 `transform`。
-- `traits` 可以依赖 `core` 的错误与类型抽象。
+- `core` 不依赖 `iter`、`effect`、`transform`、`pattern` 或 `ts-pattern`。
+- `pattern` 依赖 `ts-pattern`，不依赖 `core`。
 - `iter` 可以依赖 `core`，但不依赖 Effect。
 - `effect` 作为独立适配层。
 - `transform` 作为独立工具链，不成为普通运行时用户的强制依赖。
@@ -204,8 +202,8 @@ const user = Option.some({
 })
 
 const name = user
-  .map(user => user.name)
-  .filter(name => name.length > 0)
+  .map((user) => user.name)
+  .filter((name) => name.length > 0)
   .unwrapOr('Anonymous')
 ```
 
@@ -259,8 +257,8 @@ function parsePort(input: string): Result<number, Error> {
 }
 
 const result = parsePort('3000')
-  .map(port => port + 1)
-  .mapErr(error => new Error(`Configuration error: ${error.message}`))
+  .map((port) => port + 1)
+  .mapErr((error) => new Error(`Configuration error: ${error.message}`))
 ```
 
 基础方法：
@@ -327,18 +325,21 @@ toEffect(...)
 
 具体 API 需要经过错误语义评审后再确定。
 
-## 5. Pattern：模式匹配
+## 5. Pattern：Rust 风格模式匹配
 
 ### 5.1 目标
 
 提供接近 Rust `match` 的分支表达能力：
 
 ```ts
-const output = match(command, {
-  read: ({ path }) => `Read ${path}`,
-  write: ({ path }) => `Write ${path}`,
-  exit: () => 'Exit',
-})
+import { caseOf, match, otherwise } from '@tsr/pattern'
+
+const output = match(
+  age,
+  caseOf(1, () => 'One'),
+  caseOf(2, () => 'Two'),
+  otherwise(() => 'Other')
+)
 ```
 
 目标能力：
@@ -353,113 +354,50 @@ const output = match(command, {
 
 ### 5.2 实现策略
 
-优先评估 ts-pattern 的直接使用和适配能力。
+`@tsr/pattern` 复用 `ts-pattern` 的匹配实现和类型推导，并限定项目支持的公共入口。它不重新实现模式匹配算法。
 
-需要验证：
+首版公共 API：
 
-- 是否能满足项目希望公开的 API。
-- 穷尽性检查是否能在公共 API 中保留。
-- 类型推导是否会因适配层而退化。
-- 是否能独立安装和使用 `pattern`。
-- 是否有必要引入内部实现或 fork。
+- `match(value, ...cases)`：按顺序执行 `caseOf(pattern, handler)` 分支，支持原始值、对象、数组和 `P` 模式，不要求改造原始数据。
+- `caseOf(pattern, handler)`：声明一个模式分支，复用 `ts-pattern` 的模式匹配和处理器推导。
+- `otherwise(handler)`：声明可选的默认分支。没有默认分支且没有模式匹配时，自动抛出 `NonExhaustiveError`。
+- `matchChain(value)`：保留 `ts-pattern` 的链式 API，支持 `.with(pattern, handler)`、`.when(guard, handler)`、`.otherwise(handler)` 和 `.exhaustive()`，用于对象式 API 无法表达的复杂模式。
+- `P`：模式构造器命名空间。支持通配符 `_`、原始类型模式、`nullish`、`nonNullable`、`instanceOf`、`array`、`map`、`set`、`record`、`optional`、`union`、`intersection`、`not`、`when`、`select` 和 `shape`。
+- `isMatching(pattern)` / `isMatching(pattern, value)`：运行时模式判断，并在类型层面提供类型守卫。
+- `Pattern<T>`：描述可匹配 `T` 的模式类型。
 
-默认不从零实现复杂的模式匹配类型系统。
+不单独导出底层 `NonExhaustiveError`，也不增加项目自有的匹配语法。以上述入口和行为测试作为兼容边界。
 
 ### 5.3 穷尽性检查
 
 示例：
 
 ```ts
+import { caseOf, match, P } from '@tsr/pattern'
+
 type State =
   | { type: 'idle' }
   | { type: 'loading' }
   | { type: 'success'; data: string }
   | { type: 'error'; error: Error }
 
-const message = match(state, {
-  idle: () => 'Idle',
-  loading: () => 'Loading',
-  success: ({ data }) => data,
-  error: ({ error }) => error.message,
-}).exhaustive()
+const message = match(
+  state,
+  caseOf({ type: 'idle' }, () => 'Idle'),
+  caseOf({ type: 'loading' }, () => 'Loading'),
+  caseOf({ type: 'success', data: P.string }, ({ data }) => data),
+  caseOf(
+    { type: 'error', error: P.instanceOf(Error) },
+    ({ error }) => error.message
+  )
+)
 ```
 
-未处理的分支应尽可能在编译期暴露错误。
+没有 `otherwise` 时，运行时未匹配会抛出 `NonExhaustiveError`；TypeScript 无法证明任意模式集合已穷尽，因此不承诺所有模式都能在编译期穷尽检查。
 
-## 6. Traits：行为与类型转换协议
+## 6. TypeScript 原生能力
 
-TypeScript 没有 Rust 的完整 Trait 实现机制，因此采用接口、泛型约束和独立协议对象模拟。
-
-### 6.1 From / Into
-
-表示不会失败的转换。
-
-概念示例：
-
-```ts
-interface From<T, Output> {
-  from(value: T): Output
-}
-```
-
-目标：
-
-- 统一转换入口。
-- 让转换行为可组合。
-- 避免每个模块自行发明转换 API。
-- 允许针对不同目标类型定义独立转换器。
-
-不直接承诺模拟 Rust 中任意类型上的 `impl From<T>`。
-
-### 6.2 TryFrom / TryInto
-
-表示可能失败的转换。
-
-```ts
-interface TryFrom<Input, Output, Error> {
-  tryFrom(input: Input): Result<Output, Error>
-}
-```
-
-示例：
-
-```ts
-const port = Port.tryFrom(input)
-```
-
-转换失败时必须返回明确的错误，不允许静默回退到不安全值。
-
-### 6.3 Default
-
-```ts
-interface Default<T> {
-  default(): T
-}
-```
-
-适用于默认配置、初始状态、默认选项等场景。
-
-### 6.4 Display / Debug
-
-提供统一的格式化协议：
-
-```ts
-display(value)
-debug(value)
-```
-
-应与 JavaScript 原生的 `toString()`、`JSON.stringify()` 明确区分，避免意外调用用户代码或产生循环引用问题。
-
-### 6.5 Clone / Eq / Ord
-
-作为后续扩展协议：
-
-- `Clone`：显式复制语义。
-- `Eq`：等价性比较。
-- `Ord`：排序与比较。
-- `Hash`：哈希行为。
-
-不默认将深拷贝、引用相等和结构相等混为一谈。
+不单独提供 `@tsr/traits`。类型转换、格式化和默认值按具体场景使用普通函数或工厂函数；可能失败的转换可以返回 `@tsr/core` 的 `Result`。不为对齐 Rust 命名而增加缺少实际收益的协议抽象。
 
 ## 7. Iter：惰性迭代器
 
@@ -471,8 +409,8 @@ debug(value)
 
 ```ts
 const total = Iter.from(values)
-  .filter(value => value > 0)
-  .map(value => value * 2)
+  .filter((value) => value > 0)
+  .map((value) => value * 2)
   .take(10)
   .sum()
 ```
@@ -552,9 +490,7 @@ rangeInclusive(0, 10)
 模拟 Rust `Cow` 的拥有或借用状态：
 
 ```ts
-type Cow<T> =
-  | { kind: 'borrowed'; value: T }
-  | { kind: 'owned'; value: T }
+type Cow<T> = { kind: 'borrowed'; value: T } | { kind: 'owned'; value: T }
 ```
 
 这只是状态模型，不等于 Rust 的生命周期、借用检查或零拷贝保证。
@@ -618,18 +554,17 @@ type Cow<T> =
 建议支持细粒度安装：
 
 ```ts
-import { Option, Result } from '@rust-ts/core'
-import { match } from '@rust-ts/pattern'
-import { tryFrom } from '@rust-ts/traits'
-import { Iter } from '@rust-ts/iter'
+import { Option, Result } from '@tsr/core'
+import { caseOf, match, otherwise } from '@tsr/pattern'
+import { Iter } from '@tsr/iter'
 ```
 
-包名仅为占位符，正式发布前需要检查 npm 命名可用性。
+项目包名统一使用 `@tsr/*`，正式发布前仍需要检查 npm 命名可用性。
 
 ### 11.2 依赖策略
 
 - Core 仅包含必要运行时代码。
-- Pattern 优先评估对 ts-pattern 的依赖或适配。
+- 使用模式匹配的包依赖 `@tsr/pattern`；只有需要底层特有 API 时才直接依赖 `ts-pattern`。
 - Effect 只在适配包中引入。
 - Neverthrow 作为设计参考或可选迁移适配对象，不与项目 Result 并行成为第二种标准类型。
 - 避免无必要的运行时依赖和循环依赖。
@@ -711,9 +646,7 @@ import { Iter } from '@rust-ts/iter'
 
 - match 适配。
 - 穷尽性检查。
-- From / Into。
-- TryFrom / TryInto。
-- Default 等基础协议。
+- 按实际需求实现具体的类型转换函数。
 
 验收标准：公共 API 一致，不出现重复的 Result 体系。
 
@@ -752,16 +685,16 @@ import { Iter } from '@rust-ts/iter'
 
 ## 14. 风险与应对
 
-| 风险 | 应对措施 |
-|---|---|
-| Result 类型重复 | 只维护一个项目标准 Result |
-| Effect 依赖过重 | Effect 独立适配 |
-| 模式匹配类型复杂 | 优先复用成熟实现 |
-| Trait 抽象过度 | 从具体转换协议开始 |
-| 惰性迭代器语义不清 | 明确单次消费和终端操作 |
-| 品牌类型被绕过 | 配合运行时验证和文档 |
+| 风险               | 应对措施                    |
+| ------------------ | --------------------------- |
+| Result 类型重复    | 只维护一个项目标准 Result   |
+| Effect 依赖过重    | Effect 独立适配             |
+| 模式匹配类型复杂   | 优先复用成熟实现            |
+| 协议抽象过度       | 优先使用具体函数            |
+| 惰性迭代器语义不清 | 明确单次消费和终端操作      |
+| 品牌类型被绕过     | 配合运行时验证和文档        |
 | 语法扩展影响工具链 | 独立 transform 包，后置实施 |
-| 包体积增长 | 子路径导出和依赖审计 |
+| 包体积增长         | 子路径导出和依赖审计        |
 
 ## 15. 第一版验收标准
 
@@ -769,8 +702,8 @@ import { Iter } from '@rust-ts/iter'
 
 - [ ] Option API 和 Result API 已统一。
 - [ ] 错误传播与异常抛出语义有文档。
-- [ ] match 支持判别联合类型和穷尽性检查。
-- [ ] 基础转换协议具备类型测试。
+- [ ] `@tsr/pattern` 支持原始值匹配、自动非穷尽错误和链式复杂模式。
+- [ ] 具体类型转换函数具备类型测试。
 - [ ] Core 不强依赖 Effect。
 - [ ] 子包之间不存在循环依赖。
 - [ ] ESM 导入和类型声明正常。
@@ -785,7 +718,7 @@ import { Iter } from '@rust-ts/iter'
 1. `Option` 和 `Result` 使用私有构造器的类封装判别标签和值，公共 API 不暴露可变字段。
 2. `None` 使用单例；`Option.some(undefined)` 仍表示存在值，与 `None` 区分。
 3. `Result.andThen` 将前后错误类型合并为联合类型。`orElse` 允许恢复为不同成功类型，返回成功类型的联合，以便从 `Err` 直接恢复。
-4. `pattern` 以 ts-pattern 作为实现基础，通过独立包提供项目入口；依赖不进入 `core`。
+4. `@tsr/pattern` 以 `ts-pattern` 为实现，公开 `match`、`caseOf`、`otherwise`、`matchChain`、`P`、`isMatching` 和 `Pattern<T>` 作为稳定入口。
 5. 首版 Iterator 仅实现同步迭代；异步场景使用原生 `AsyncIterator` / `AsyncIterable` 与 `Promise<Result<T, E>>`。
 6. 首版不提供 neverthrow 互操作包；只有出现明确需求后再评估适配。
 7. 最低 Node.js 版本为 `22.18.0`，最低 TypeScript 主版本为 `6.0`，与当前根配置一致。
