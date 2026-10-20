@@ -1,0 +1,40 @@
+{
+  "name": "start-template",
+  "version": "1.0.0",
+  "description": "Quick start template based on monorepo",
+  "keywords": [
+    "monorepo",
+    "template"
+  ],
+  "license": "MIT",
+  "author": "Bin",
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "check": "vp check",
+    "dev": "turbo run dev",
+    "format": "vp fmt .",
+    "lint": "vp lint .",
+    "lint:fix": "vp lint . --fix",
+    "prepare": "vp config",
+    "test": "turbo run test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:types",
+    "tsx": "catalog:tooling",
+    "turbo": "catalog:tooling",
+    "typescript": "catalog:tooling",
+    "vite-plus": "catalog:tooling",
+    "vitest": "catalog:testing"
+  },
+  "lint-staged": {
+    "*": [
+      "vp check --fix"
+    ]
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@10.34.1"
+}

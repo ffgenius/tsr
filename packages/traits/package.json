@@ -1,0 +1,1 @@
+{"name":"@tsr/traits","version":"0.1.0","description":"Conversion and behavior protocols for the Rust-inspired TypeScript toolkit","license":"MIT","type":"module","module":"./dist/index.js","types":"./dist/index.d.ts","exports":{".":{"types":"./dist/index.d.ts","import":"./dist/index.js"}},"scripts":{"build":"vp pack","dev":"vp pack -w","test":"vp test"}}
