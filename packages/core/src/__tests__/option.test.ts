@@ -10,6 +10,7 @@ describe('Option', () => {
     expect(some.unwrap()).toBeUndefined()
     expect(some.isNone()).toBe(false)
     expect(None).toBe(Option.none())
+    expect(Option.fromNullable(undefined).isNone()).toBe(true)
   })
 
   it('maps and chains only present values', () => {
@@ -51,5 +52,33 @@ describe('Option', () => {
     expect(() => Option.none().expect('missing value')).toThrow(
       OptionUnwrapError
     )
+    expect(() => Option.none().unwrap()).toThrow(
+      'Called Option.unwrap() on a None value'
+    )
+  })
+
+  it('short-circuits callbacks and conversions for None', () => {
+    let calls = 0
+    const none = Option.none<number>()
+
+    expect(
+      none
+        .andThen(() => {
+          calls++
+          return Some(1)
+        })
+        .isNone()
+    ).toBe(true)
+    expect(
+      none
+        .filter(() => {
+          calls++
+          return true
+        })
+        .isNone()
+    ).toBe(true)
+    expect(none.zip(Some(1)).isNone()).toBe(true)
+    expect(none.okOr('missing').unwrapErr()).toBe('missing')
+    expect(calls).toBe(0)
   })
 })
