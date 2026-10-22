@@ -426,3 +426,46 @@ test('infers position predicates and always returns an optional numeric index', 
     })
   expectTypeOf(result).toEqualTypeOf<Option<number>>()
 })
+
+test('returns numbers for numeric aggregations after mapping and narrowing', () => {
+  expectTypeOf(Iter.from([1, 2] as const).sum()).toEqualTypeOf<number>()
+  expectTypeOf(Iter.from([1, 2] as const).product()).toEqualTypeOf<number>()
+  expectTypeOf(Iter.from([]).sum()).toEqualTypeOf<number>()
+  expectTypeOf(Iter.from([]).product()).toEqualTypeOf<number>()
+  expectTypeOf(Iter.from(['1', '2']).map(Number).sum()).toEqualTypeOf<number>()
+  expectTypeOf(
+    Iter.from([1, 'two', 3])
+      .filter((value) => typeof value === 'number')
+      .product()
+  ).toEqualTypeOf<number>()
+})
+
+test('requires numeric elements for sum and product', () => {
+  type SumReceiver = ThisParameterType<Iter<number>['sum']>
+  type ProductReceiver = ThisParameterType<Iter<number>['product']>
+
+  expectTypeOf<Iter<string>>().not.toExtend<SumReceiver>()
+  expectTypeOf<Iter<number | string>>().not.toExtend<SumReceiver>()
+  expectTypeOf<Iter<bigint>>().not.toExtend<SumReceiver>()
+  expectTypeOf<Iter<undefined>>().not.toExtend<SumReceiver>()
+  expectTypeOf<Iter<string>>().not.toExtend<ProductReceiver>()
+  expectTypeOf<Iter<number | string>>().not.toExtend<ProductReceiver>()
+  expectTypeOf<Iter<bigint>>().not.toExtend<ProductReceiver>()
+  expectTypeOf<Iter<undefined>>().not.toExtend<ProductReceiver>()
+})
+
+test('infers partition groups and narrows type guards', () => {
+  const values: (number | string)[] = [1, 'two']
+  const [strings, numbers] = Iter.from(values).partition(
+    (value): value is string => typeof value === 'string'
+  )
+
+  expectTypeOf(strings).toEqualTypeOf<string[]>()
+  expectTypeOf(numbers).toEqualTypeOf<number[]>()
+  expectTypeOf(Iter.from([1, 2]).partition((value) => value > 1)).toEqualTypeOf<
+    [number[], number[]]
+  >()
+  expectTypeOf(Iter.from([]).partition(() => true)).toEqualTypeOf<
+    [never[], never[]]
+  >()
+})

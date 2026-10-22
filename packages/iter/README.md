@@ -1,6 +1,6 @@
 # @tsr/iter
 
-同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip`、`find`、`position`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find`、`position` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
+同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip`、`find`、`position`、`any`、`all`、`fold`、`reduce`、`sum`、`product`、`partition`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find`、`position` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
 
 ```ts
 import { Iter } from '@tsr/iter'
@@ -41,7 +41,7 @@ const numbers = Iter.from([1, 'two', 3])
 
 ## 惰性与单次消费
 
-- `map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip` 创建处理链时不读取源；`next()`、`find()`、`position()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
+- `map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip` 创建处理链时不读取源；`next()`、`find()`、`position()`、`any()`、`all()`、`fold()`、`reduce()`、`sum()`、`product()`、`partition()`、`collect()` 和 `for...of` 驱动消费。
 - `collect()` 收集当前剩余元素，再次调用返回空数组。
 - 从同一 `Iter` 派生的链共享消费进度；它们不复制数据，也不会各自从头开始。需要重新遍历数组时，重新调用 `Iter.from(array)`。
 - `take(n)` 最多从直接上游读取 `n` 个元素，不额外预读；`take(0)` 不初始化源。`n` 必须是非负整数，否则立即抛出 `RangeError`。
@@ -211,6 +211,30 @@ Iter.from([undefined]).reduce(() => undefined) // Some(undefined)
 ```
 
 空源、已耗尽或已关闭的链返回 `None`；单元素源直接返回 `Some(首项)`，以上情况都不会调用回调。`reduce` 与 `fold` 一样消费当前链的剩余元素，并遵循相同的无限源与资源清理规则。
+
+`sum(this: Iter<number>): number` 和 `product(this: Iter<number>): number` 分别从 `0` 和 `1` 开始，按迭代顺序累加或累乘剩余元素。空源、已耗尽或已关闭的链分别返回 `0` 和 `1`。类型检查仅允许数字元素；字符串、`bigint` 和包含非数字的联合类型需要先转换或筛选。
+
+```ts
+Iter.from([1, 2, 3]).sum() // 6
+Iter.from([2, 3, 4]).product() // 24
+Iter.from<number>([]).sum() // 0
+Iter.from<number>([]).product() // 1
+Iter.from(['2', '3']).map(Number).product() // 6
+```
+
+运算遵循 JavaScript `number` 的精度、溢出、`NaN`、`Infinity` 和负零规则，不检查有限值或安全整数。即使累积值已是 `0` 或 `NaN`，仍继续消费当前链，不会短路。两者遵循 `fold` 的共享消费与资源清理规则；无限源应先使用 `take` 等方式限制范围。
+
+`partition(predicate)` 消费当前剩余元素并返回 `[匹配项, 不匹配项]` 两个数组，各自保留源中的相对顺序。传入类型守卫时，两个数组会分别收窄为匹配类型和排除该类型后的剩余类型。空源返回 `[[], []]`；该操作会消费有限源直至耗尽，遵循 `fold` 的资源清理规则。
+
+```ts
+Iter.from([1, 2, 3, 4]).partition((value) => value % 2 === 0)
+// [[2, 4], [1, 3]]
+
+Iter.from([1, 'two', 3]).partition(
+  (value): value is number => typeof value === 'number'
+)
+// [[1, 3], ['two']]
+```
 
 ## 提前退出与资源清理
 

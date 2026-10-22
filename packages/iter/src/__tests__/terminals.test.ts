@@ -483,6 +483,69 @@ describe('reduce', () => {
   })
 })
 
+describe('partition', () => {
+  it('partitions remaining values in order and exhausts the source', () => {
+    const source = Iter.from([1, 2, 3, 4, 5])
+    source.next()
+    const visited: number[] = []
+
+    const result = source.partition((value) => {
+      visited.push(value)
+      return value % 2 === 0
+    })
+
+    expect(result).toEqual([
+      [2, 4],
+      [3, 5],
+    ])
+    expect(visited).toEqual([2, 3, 4, 5])
+    expect(source.collect()).toEqual([])
+  })
+
+  it('returns empty groups without calling the predicate for empty or closed inputs', () => {
+    const closed = Iter.from([1])
+    closed.return()
+    let calls = 0
+
+    for (const source of [Iter.from<number>([]), closed]) {
+      expect(
+        source.partition(() => {
+          calls++
+          return true
+        })
+      ).toEqual([[], []])
+    }
+    expect(calls).toBe(0)
+  })
+
+  it('preserves a predicate error when source cleanup also throws', () => {
+    const error = new Error('predicate failed')
+    let closed = 0
+    const values: Iterable<number> = {
+      [Symbol.iterator]() {
+        return {
+          next: () => ({ done: false, value: 1 }),
+          return() {
+            closed++
+            throw new Error('cleanup failed')
+          },
+        }
+      },
+    }
+    const source = Iter.from(values)
+
+    expect(() =>
+      source.partition(() => {
+        throw error
+      })
+    ).toThrow(error)
+    expect(closed).toBe(1)
+    expect(source.collect()).toEqual([])
+    source.return()
+    expect(closed).toBe(1)
+  })
+})
+
 describe('filterMap, inspect, and reduce errors', () => {
   it.each(['filterMap', 'inspect', 'reduce'] as const)(
     '%s preserves a callback error when cleanup also throws',

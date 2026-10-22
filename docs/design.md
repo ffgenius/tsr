@@ -417,7 +417,7 @@ const selected = Iter.from(values)
 
 ### 7.2 基础 API
 
-当前已实现 `Iter.from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip`、`find`、`position`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find`、`position` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。输入类型、共享消费进度和资源清理规则见 [@tsr/iter 使用说明](../packages/iter/README.md)。
+当前已实现 `Iter.from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip`、`find`、`position`、`any`、`all`、`fold`、`reduce`、`sum`、`product`、`partition`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find`、`position` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。`sum` 和 `product` 仅接受 `number` 元素，空源分别返回 `0` 和 `1`。输入类型、共享消费进度和资源清理规则见 [@tsr/iter 使用说明](../packages/iter/README.md)。
 
 以下为目标 API 列表，尚未全部实现：
 
@@ -442,7 +442,6 @@ const selected = Iter.from(values)
 - `any`
 - `all`
 - `collect`
-- `partition`
 
 ### 7.3 设计约束
 

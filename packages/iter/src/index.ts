@@ -401,6 +401,25 @@ export class Iter<T> implements IterableIterator<T> {
     return Option.some(this.fold(first.value, reducer))
   }
 
+  sum(this: Iter<number>): number {
+    return this.fold(0, (total, value) => total + value)
+  }
+
+  product(this: Iter<number>): number {
+    return this.fold(1, (total, value) => total * value)
+  }
+
+  partition<S extends T>(
+    predicate: (value: T) => value is S
+  ): [S[], Exclude<T, S>[]]
+  partition(predicate: (value: T) => boolean): [T[], T[]]
+  partition(predicate: (value: T) => boolean): [T[], T[]] {
+    return this.fold<[T[], T[]]>([[], []], (groups, value) => {
+      groups[predicate(value) ? 0 : 1].push(value)
+      return groups
+    })
+  }
+
   collect(): T[] {
     const values: T[] = []
     let result = this.next()
