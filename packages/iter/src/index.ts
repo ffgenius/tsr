@@ -86,6 +86,54 @@ export class Iter<T> implements IterableIterator<T> {
     )
   }
 
+  flatMap<U extends Iterable<unknown>>(
+    mapper: (value: T) => U
+  ): Iter<U extends Iterable<infer V> ? V : never>
+  flatMap(mapper: (value: T) => Iterable<unknown>): Iter<unknown> {
+    const source = this
+    let inner: Iter<unknown> | undefined
+
+    return new Iter<unknown>(
+      () => {
+        while (true) {
+          if (inner !== undefined) {
+            const result = inner.next()
+            if (!result.done) {
+              return result
+            }
+            inner = undefined
+          }
+
+          const result = source.next()
+          if (result.done) {
+            return { done: true, value: undefined }
+          }
+          inner = Iter.from(mapper(result.value))
+        }
+      },
+      () => {
+        try {
+          inner?.return()
+        } catch (error) {
+          try {
+            source.return()
+          } catch {
+            // 内层清理失败时仍关闭外层，并保留内层的清理异常。
+          }
+          throw error
+        }
+        source.return()
+      }
+    )
+  }
+
+  flatten<U extends Iterable<unknown>>(
+    this: Iter<U>
+  ): Iter<U extends Iterable<infer V> ? V : never>
+  flatten(this: Iter<Iterable<unknown>>): Iter<unknown> {
+    return this.flatMap((value) => value)
+  }
+
   filter<S extends T>(predicate: (value: T) => value is S): Iter<S>
   filter(predicate: (value: T) => boolean): Iter<T>
   filter<S extends T>(predicate: (value: T) => boolean): Iter<S> {

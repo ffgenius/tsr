@@ -1,6 +1,6 @@
 # @tsr/iter
 
-同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
+同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
 
 ```ts
 import { Iter } from '@tsr/iter'
@@ -41,7 +41,7 @@ const numbers = Iter.from([1, 'two', 3])
 
 ## 惰性与单次消费
 
-- `map`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
+- `map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
 - `collect()` 收集当前剩余元素，再次调用返回空数组。
 - 从同一 `Iter` 派生的链共享消费进度；它们不复制数据，也不会各自从头开始。需要重新遍历数组时，重新调用 `Iter.from(array)`。
 - `take(n)` 最多从直接上游读取 `n` 个元素，不额外预读；`take(0)` 不初始化源。`n` 必须是非负整数，否则立即抛出 `RangeError`。
@@ -87,6 +87,35 @@ const names = Iter.from([{ name: 'Ada' }, { name: null }, { name: 'Lin' }])
 ```
 
 `inspect` 放在筛选之前会观察筛选所读取的每个元素，放在筛选之后只会观察保留下来的元素。对无限源使用 `filterMap` 且始终返回 `None` 时，即使后接 `take(1)`，也可能永远无法产出结果。
+
+## 展开可迭代对象
+
+`flatMap(mapper)` 在消费外层元素时调用回调，按顺序产出回调返回的同步可迭代对象中的元素。`flatten()` 直接展开外层的每个可迭代元素。两者都只展开一层，支持数组、只读元组、字符串、Set、Map、TypedArray、同步生成器和 `Iter`；字符串按 Unicode 码点展开。
+
+```ts
+Iter.from([1, 2])
+  .flatMap((value) => [value, value * 10])
+  .collect()
+// [1, 10, 2, 20]
+Iter.from([[1, 2], [], [3]])
+  .flatten()
+  .collect()
+// [1, 2, 3]
+Iter.from([[[1]], [[2]]])
+  .flatten()
+  .collect()
+// [[1], [2]]，只展开一层。
+Iter.from([[1], ['two']] as const)
+  .flatten()
+  .collect()
+// (1 | 'two')[]
+```
+
+创建链时不会调用回调或初始化内外层迭代器。每次只消费当前内层，内层耗尽后才读取下一项外层数据；空内层被跳过，`undefined`、`null` 和假值元素被保留。部分消费后继续使用同一条展开链，会先继续当前内层。从外层源直接消费时，会跳过对应的外层项，不影响展开链已持有的内层进度。
+
+`take(n)` 达到上限和 `find` 等操作正常短路时，内外层保持可继续消费；需要清理时应保留展开链或其下游并调用 `return()`。显式关闭、循环提前退出或迭代异常会先关闭当前活动内层，再关闭外层，不初始化尚未访问的内层。即使内层清理抛错，也会尝试关闭外层；显式关闭时保留先发生的清理错误，迭代或回调抛错时保留原始错误。正常耗尽的内层不会额外调用 `return()`。
+
+只有同步可迭代对象可以展开，Promise、AsyncIterable 和仅有 `next()` 的 Iterator 不受支持。无限内层会阻止后续外层项被访问；无限外层持续产生空内层时，后接 `take(1)` 也可能无法结束。
 
 ## 查找与短路判断
 
@@ -173,7 +202,7 @@ try {
 }
 ```
 
-源迭代或 `map`、`filter`、`filterMap`、`inspect`、`find`、`any`、`all`、`fold`、`reduce` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
+源或内层迭代，以及 `map`、`flatMap`、`filter`、`filterMap`、`inspect`、`find`、`any`、`all`、`fold`、`reduce` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
 
 关闭依照 JavaScript 迭代协议调用源的 `return()`，不会继续读取源。资源清理应在 `finally` 中同步完成，避免在 `finally` 中继续 `yield`。
 

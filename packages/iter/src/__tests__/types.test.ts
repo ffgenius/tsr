@@ -228,3 +228,95 @@ test('infers reduce results from the element type', () => {
       .reduce((left, right) => left + right)
   ).toEqualTypeOf<Option<string>>()
 })
+
+test('infers flatMap elements from synchronous iterable callbacks', () => {
+  const strings = Iter.from([1, 2]).flatMap((value) => {
+    expectTypeOf(value).toEqualTypeOf<number>()
+    return new Set([String(value)])
+  })
+  expectTypeOf(strings).toEqualTypeOf<Iter<string>>()
+  expectTypeOf(
+    Iter.from([1, 'two'] as const)
+      .flatMap((value) => [value] as const)
+      .collect()
+  ).toEqualTypeOf<(1 | 'two')[]>()
+  expectTypeOf(
+    Iter.from([1])
+      .flatMap(() => [])
+      .collect()
+  ).toEqualTypeOf<never[]>()
+  expectTypeOf(
+    Iter.from([1])
+      .flatMap(() => [undefined])
+      .collect()
+  ).toEqualTypeOf<undefined[]>()
+  expectTypeOf(
+    Iter.from([1])
+      .flatMap(() => new Map([['key', 1]]))
+      .collect()
+  ).toEqualTypeOf<[string, number][]>()
+  expectTypeOf(
+    Iter.from([1])
+      .flatMap((value) => Iter.from([value]))
+      .collect()
+  ).toEqualTypeOf<number[]>()
+  expectTypeOf(
+    Iter.from([true, false])
+      .flatMap((value) => (value ? [1] : ['two']))
+      .collect()
+  ).toEqualTypeOf<(number | string)[]>()
+})
+
+test('infers flatten elements for readonly, nested, and mixed iterable inputs', () => {
+  expectTypeOf(
+    Iter.from([[1], ['two']] as const)
+      .flatten()
+      .collect()
+  ).toEqualTypeOf<(1 | 'two')[]>()
+  expectTypeOf(
+    Iter.from([[[1]], [[2]]])
+      .flatten()
+      .collect()
+  ).toEqualTypeOf<number[][]>()
+  expectTypeOf(Iter.from(['text']).flatten().collect()).toEqualTypeOf<
+    string[]
+  >()
+  expectTypeOf(
+    Iter.from([new Uint8Array([1])])
+      .flatten()
+      .collect()
+  ).toEqualTypeOf<number[]>()
+  expectTypeOf(
+    Iter.from([new Set(['one'])])
+      .flatten()
+      .collect()
+  ).toEqualTypeOf<string[]>()
+  expectTypeOf(
+    Iter.from([new Map([['one', 1]])])
+      .flatten()
+      .collect()
+  ).toEqualTypeOf<[string, number][]>()
+  expectTypeOf(
+    Iter.from([[], [undefined]])
+      .flatten()
+      .collect()
+  ).toEqualTypeOf<undefined[]>()
+  expectTypeOf(Iter.from([[], []]).flatten().collect()).toEqualTypeOf<never[]>()
+  const mixed: Iterable<number | string>[] = [[1], new Set(['two'])]
+  expectTypeOf(Iter.from(mixed).flatten().collect()).toEqualTypeOf<
+    (number | string)[]
+  >()
+})
+
+test('requires synchronous iterable results for flatMap and flatten', () => {
+  type Output = ReturnType<Parameters<Iter<number>['flatMap']>[0]>
+  type Receiver = ThisParameterType<Iter<number>['flatten']>
+
+  expectTypeOf<number>().not.toExtend<Output>()
+  expectTypeOf<Iterator<number>>().not.toExtend<Output>()
+  expectTypeOf<Promise<number[]>>().not.toExtend<Output>()
+  expectTypeOf<AsyncIterable<number>>().not.toExtend<Output>()
+  expectTypeOf<Iter<number>>().not.toExtend<Receiver>()
+  expectTypeOf<Iter<number | number[]>>().not.toExtend<Receiver>()
+  expectTypeOf<Iter<AsyncIterable<number>>>().not.toExtend<Receiver>()
+})
