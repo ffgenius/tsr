@@ -1,6 +1,6 @@
 # @tsr/iter
 
-同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`chain`、`zip`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
+同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip`、`find`、`position`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find`、`position` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
 
 ```ts
 import { Iter } from '@tsr/iter'
@@ -41,11 +41,12 @@ const numbers = Iter.from([1, 'two', 3])
 
 ## 惰性与单次消费
 
-- `map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`chain`、`zip` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
+- `map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip` 创建处理链时不读取源；`next()`、`find()`、`position()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
 - `collect()` 收集当前剩余元素，再次调用返回空数组。
 - 从同一 `Iter` 派生的链共享消费进度；它们不复制数据，也不会各自从头开始。需要重新遍历数组时，重新调用 `Iter.from(array)`。
 - `take(n)` 最多从直接上游读取 `n` 个元素，不额外预读；`take(0)` 不初始化源。`n` 必须是非负整数，否则立即抛出 `RangeError`。
 - `skip(n)` 在首次消费时从直接上游跳过最多 `n` 项，之后正常产出剩余元素，不会重复跳过。`n` 的校验规则与 `take` 一致；`skip(0)` 不跳过任何元素。
+- `stepBy(n)` 保留当前源的首项，之后每次跳过 `n - 1` 项再产出一项；`stepBy(1)` 保留所有元素。`n` 必须是正整数，否则立即抛出 `RangeError`，不初始化或消费源。跳过动作延迟到请求下一项时执行，因此 `stepBy(n).take(1)` 只读取源的首项。共享源被其他链消费时，下一步从源的新位置继续跳过。
 - `enumerate()` 惰性产出 `[number, T]` 元组。每条派生链从 0 编号，只统计该链产出的元素；部分消费后编号连续。
 - `filter` 和 `filterMap` 可能需要读取多个源元素才能产出一个匹配项。对无限源直接调用 `collect()`，或过滤条件始终不匹配时，处理可能永远无法结束。
 
@@ -66,6 +67,8 @@ Iter.from(['a', 'b', 'c']).skip(1).enumerate().collect()
 // [[0, 'b'], [1, 'c']]
 Iter.from(['a', 'b', 'c']).enumerate().skip(1).collect()
 // [[1, 'b'], [2, 'c']]
+Iter.from([1, 2, 3, 4, 5]).stepBy(2).collect()
+// [1, 3, 5]
 ```
 
 ## 转换并筛选与观察元素
@@ -142,15 +145,25 @@ left.collect() // [3]
 
 ## 查找与短路判断
 
-这三个操作立即从当前位置消费，直到得到结果或源耗尽。正常短路不会关闭源；触发短路的元素已被消费，后续调用从下一个元素继续。
+这些操作立即从当前位置消费，直到得到结果或源耗尽。正常短路不会关闭源；触发短路的元素已被消费，后续调用从下一个元素继续。
 
-| 操作              | 返回值      | 短路条件                 | 空源或已结束的源 |
-| ----------------- | ----------- | ------------------------ | ---------------- |
-| `find(predicate)` | `Option<T>` | 首个匹配项               | `None`           |
-| `any(predicate)`  | `boolean`   | 首次匹配，返回 `true`    | `false`          |
-| `all(predicate)`  | `boolean`   | 首次不匹配，返回 `false` | `true`           |
+| 操作                  | 返回值           | 短路条件                 | 空源或已结束的源 |
+| --------------------- | ---------------- | ------------------------ | ---------------- |
+| `find(predicate)`     | `Option<T>`      | 首个匹配项               | `None`           |
+| `position(predicate)` | `Option<number>` | 首个匹配项的相对索引     | `None`           |
+| `any(predicate)`      | `boolean`        | 首次匹配，返回 `true`    | `false`          |
+| `all(predicate)`      | `boolean`        | 首次不匹配，返回 `false` | `true`           |
 
 `find` 未找到时返回 `None`，找到 `undefined` 时返回 `Some(undefined)`；支持类型守卫，并根据守卫收窄返回的 `Option` 类型。
+
+`position(predicate: (value: T) => boolean): Option<number>` 返回首个匹配项相对于本次调用起点的索引，从 0 开始；每次调用重新编号。它统计当前链产出的元素，位于 `filter` 或 `stepBy` 之后时，返回处理后的相对索引。匹配首项返回 `Some(0)`，未找到返回 `None`；匹配项已消费，源仍可继续读取。
+
+```ts
+const letters = Iter.from(['a', 'b', 'c', 'd'])
+letters.position((value) => value === 'b').unwrap() // 1
+letters.position((value) => value === 'c').unwrap() // 0，本次从 c 开始。
+letters.collect() // ['d']
+```
 
 ```ts
 const source = Iter.from([1, 2, 3, 4])
@@ -165,7 +178,7 @@ const number = Iter.from([1, 'two']).find(
 // Option<number>
 ```
 
-对无限源，只有能在有限步内触发短路的条件才会返回。无限源中不存在匹配项时，`find`、`any` 可能永远无法结束；所有元素始终匹配时，`all` 也可能永远无法结束。正常短路后若要释放源资源，可显式调用 `return()`。
+对无限源，只有能在有限步内触发短路的条件才会返回。无限源中不存在匹配项时，`find`、`position`、`any` 可能永远无法结束；所有元素始终匹配时，`all` 也可能永远无法结束。正常短路后若要释放源资源，可显式调用 `return()`。
 
 ## 累积剩余元素
 
@@ -225,7 +238,7 @@ try {
 }
 ```
 
-源或内层迭代，以及 `map`、`flatMap`、`filter`、`filterMap`、`inspect`、`find`、`any`、`all`、`fold`、`reduce` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
+源或内层迭代，以及 `map`、`flatMap`、`filter`、`filterMap`、`inspect`、`find`、`position`、`any`、`all`、`fold`、`reduce` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
 
 关闭依照 JavaScript 迭代协议调用源的 `return()`，不会继续读取源。资源清理应在 `finally` 中同步完成，避免在 `finally` 中继续 `yield`。
 

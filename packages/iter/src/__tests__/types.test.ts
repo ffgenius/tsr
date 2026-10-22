@@ -386,3 +386,43 @@ test('requires synchronous iterable inputs for chain and zip', () => {
   expectTypeOf<Promise<number[]>>().not.toExtend<ZipInput>()
   expectTypeOf<AsyncIterable<number>>().not.toExtend<ZipInput>()
 })
+
+test('preserves stepBy element types through literal, empty, and tuple inputs', () => {
+  expectTypeOf(Iter.from([1, 'two'] as const).stepBy(2)).toEqualTypeOf<
+    Iter<1 | 'two'>
+  >()
+  expectTypeOf(Iter.from([undefined]).stepBy(1).collect()).toEqualTypeOf<
+    undefined[]
+  >()
+  expectTypeOf(Iter.from([]).stepBy(2).collect()).toEqualTypeOf<never[]>()
+  expectTypeOf(
+    Iter.from(new Map([['one', 1]]))
+      .stepBy(2)
+      .collect()
+  ).toEqualTypeOf<[string, number][]>()
+})
+
+test('infers position predicates and always returns an optional numeric index', () => {
+  const source = Iter.from([1, 'two'] as const)
+  expectTypeOf(
+    source.position((value) => {
+      expectTypeOf(value).toEqualTypeOf<1 | 'two'>()
+      return value === 'two'
+    })
+  ).toEqualTypeOf<Option<number>>()
+  expectTypeOf(Iter.from([]).position(() => true)).toEqualTypeOf<
+    Option<number>
+  >()
+  expectTypeOf(Iter.from([undefined]).position(() => true)).toEqualTypeOf<
+    Option<number>
+  >()
+
+  const result = Iter.from([1, 'two'])
+    .filter((value) => typeof value === 'string')
+    .stepBy(2)
+    .position((value) => {
+      expectTypeOf(value).toEqualTypeOf<string>()
+      return value.length > 0
+    })
+  expectTypeOf(result).toEqualTypeOf<Option<number>>()
+})

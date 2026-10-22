@@ -247,6 +247,36 @@ export class Iter<T> implements IterableIterator<T> {
     )
   }
 
+  stepBy(count: number): Iter<T> {
+    if (!Number.isInteger(count) || count <= 0) {
+      throw new RangeError('Iter.stepBy() requires a positive integer')
+    }
+
+    const source = this
+    let remaining = 0
+
+    return new Iter<T>(
+      () => {
+        while (remaining > 0) {
+          const result = source.next()
+          if (result.done) {
+            return { done: true, value: undefined }
+          }
+          remaining--
+        }
+
+        const result = source.next()
+        if (!result.done) {
+          remaining = count - 1
+        }
+        return result
+      },
+      () => {
+        source.return()
+      }
+    )
+  }
+
   enumerate(): Iter<[number, T]> {
     const source = this
     let index = 0
@@ -336,6 +366,12 @@ export class Iter<T> implements IterableIterator<T> {
   find(predicate: (value: T) => boolean): Option<T> {
     const result = this.filter(predicate).next()
     return result.done ? Option.none() : Option.some(result.value)
+  }
+
+  position(predicate: (value: T) => boolean): Option<number> {
+    return this.enumerate()
+      .find(([, value]) => predicate(value))
+      .map(([index]) => index)
   }
 
   any(predicate: (value: T) => boolean): boolean {
