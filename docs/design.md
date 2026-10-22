@@ -33,7 +33,7 @@ TypeScript 提供了强大的静态类型系统，但在日常开发中仍存在
 构建一套面向 TypeScript 的 Rust-inspired Toolkit，提供：
 
 1. 统一的基础类型和错误处理模型。
-2. 统一的函数式 API 与类型转换协议。
+2. 统一的函数式 API。
 3. Rust 风格的模式匹配和穷尽性检查。
 4. 惰性迭代器及可组合的数据处理 API。
 5. 通过品牌类型和运行时校验增强类型安全。
@@ -600,7 +600,6 @@ import { Iter } from '@tsr/iter'
 - `Option.map` 的返回类型。
 - `Result.andThen` 的错误类型组合。
 - `match` 的穷尽性。
-- 转换协议的输入和输出推导。
 - 品牌类型不可意外混用。
 - 不合法 API 调用产生预期的类型错误。
 
@@ -628,7 +627,7 @@ import { Iter } from '@tsr/iter'
 
 ## 13. 开发阶段
 
-### Phase 1：核心抽象
+### Phase 1：核心抽象（已完成）
 
 交付：
 
@@ -640,7 +639,7 @@ import { Iter } from '@tsr/iter'
 
 验收标准：类型推导稳定、边界语义明确、核心无 Effect 强依赖。
 
-### Phase 2：模式匹配与转换协议
+### Phase 2：模式匹配
 
 交付：
 
@@ -736,6 +735,6 @@ import { Iter } from '@tsr/iter'
 
 本项目的核心价值不在于重新实现 Effect、ts-pattern 和 neverthrow，而在于建立一套统一的 Rust-inspired TypeScript API。
 
-优先完成 Option、Result、模式匹配和转换协议，确保类型安全、错误语义、依赖边界与模块设计一致；之后再扩展惰性迭代器、类型安全工具和语法转换。
+优先完成 Option、Result 和模式匹配，确保类型安全、错误语义、依赖边界与模块设计一致；之后再扩展惰性迭代器、类型安全工具和语法转换。
 
 最终目标是让 TypeScript 开发者获得更接近 Rust 的显式错误处理、可组合抽象和类型约束，同时保留 JavaScript / TypeScript 生态的兼容性与易用性。
