@@ -219,3 +219,150 @@ describe('short-circuit operations', () => {
     }
   )
 })
+
+describe('fold', () => {
+  it('folds remaining values in order and exhausts the source', () => {
+    const source = Iter.from([1, 2, 3, 4])
+    source.next()
+    const visited: number[] = []
+    const result = source.fold('start', (accumulator, value) => {
+      visited.push(value)
+      return `${accumulator}:${value}`
+    })
+
+    expect(result).toBe('start:2:3:4')
+    expect(visited).toEqual([2, 3, 4])
+    expect(source.collect()).toEqual([])
+  })
+
+  it('returns the initial value for empty, exhausted, or closed inputs', () => {
+    const exhausted = Iter.from([1])
+    exhausted.collect()
+    const closed = Iter.from([1])
+    closed.return()
+    const initial = { total: 10 }
+    let calls = 0
+
+    for (const iter of [Iter.from<number>([]), exhausted, closed]) {
+      expect(
+        iter.fold(initial, (accumulator) => {
+          calls++
+          return accumulator
+        })
+      ).toBe(initial)
+    }
+    expect(calls).toBe(0)
+  })
+
+  it('composes with adapters and only consumes the bounded view', () => {
+    let reads = 0
+    let closed = false
+    function* values() {
+      try {
+        while (true) {
+          if (++reads > 5) {
+            throw new Error('Read past the take limit')
+          }
+          yield reads
+        }
+      } finally {
+        closed = true
+      }
+    }
+    const source = Iter.from(values())
+    const iter = source.skip(2).enumerate().take(2)
+
+    expect(
+      iter.fold(
+        '',
+        (accumulator, [index, value]) => `${accumulator}${index}:${value};`
+      )
+    ).toBe('0:3;1:4;')
+    expect(reads).toBe(4)
+    expect(closed).toBe(false)
+    expect(source.next()).toEqual({ done: false, value: 5 })
+    iter.return()
+    expect(closed).toBe(true)
+  })
+
+  it('completes generator cleanup on normal exhaustion', () => {
+    let closed = 0
+    function* values() {
+      try {
+        yield 1
+        yield 2
+      } finally {
+        closed++
+      }
+    }
+
+    expect(Iter.from(values()).fold(0, (sum, value) => sum + value)).toBe(3)
+    expect(closed).toBe(1)
+  })
+
+  it('preserves reducer errors even when upstream cleanup throws', () => {
+    const error = new Error('reducer failed')
+    let closed = 0
+    const values: Iterable<number> = {
+      [Symbol.iterator]() {
+        return {
+          next: () => ({ done: false, value: 1 }),
+          return() {
+            closed++
+            throw new Error('cleanup failed')
+          },
+        }
+      },
+    }
+    const source = Iter.from(values)
+    const sibling = source.map(String)
+    const iter = source.skip(1).enumerate().take(2)
+
+    expect(() =>
+      iter.fold(0, () => {
+        throw error
+      })
+    ).toThrow(error)
+    expect(closed).toBe(1)
+    expect(iter.collect()).toEqual([])
+    expect(source.collect()).toEqual([])
+    expect(sibling.collect()).toEqual([])
+    iter.return()
+    expect(closed).toBe(1)
+  })
+
+  it('propagates source errors after partial accumulation and closes once', () => {
+    const error = new Error('source failed')
+    let closed = 0
+    let reads = 0
+    const values: Iterable<number> = {
+      [Symbol.iterator]() {
+        return {
+          next() {
+            if (++reads > 1) {
+              throw error
+            }
+            return { done: false, value: reads }
+          },
+          return() {
+            closed++
+            throw new Error('cleanup failed')
+          },
+        }
+      },
+    }
+    const source = Iter.from(values)
+    const visited: number[] = []
+
+    expect(() =>
+      source.fold(0, (sum, value) => {
+        visited.push(value)
+        return sum + value
+      })
+    ).toThrow(error)
+    expect(visited).toEqual([1])
+    expect(source.collect()).toEqual([])
+    source.return()
+    expect(closed).toBe(1)
+  })
+})

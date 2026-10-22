@@ -96,3 +96,64 @@ test('infers predicates after adapters and returns booleans for any and all', ()
   expectTypeOf(iter.any((value) => value.length > 0)).toEqualTypeOf<boolean>()
   expectTypeOf(iter.all((value) => value.length > 0)).toEqualTypeOf<boolean>()
 })
+
+test('preserves element types through skip and tuple types through enumerate', () => {
+  expectTypeOf(Iter.from([1, 'two'] as const).skip(1)).toEqualTypeOf<
+    Iter<1 | 'two'>
+  >()
+  expectTypeOf(
+    Iter.from([1, 'two'] as const)
+      .enumerate()
+      .collect()
+  ).toEqualTypeOf<[number, 1 | 'two'][]>()
+  expectTypeOf(Iter.from([undefined]).enumerate().collect()).toEqualTypeOf<
+    [number, undefined][]
+  >()
+  expectTypeOf(Iter.from([]).enumerate().collect()).toEqualTypeOf<
+    [number, never][]
+  >()
+  expectTypeOf(
+    Iter.from(new Map([['one', 1]]))
+      .enumerate()
+      .collect()
+  ).toEqualTypeOf<[number, [string, number]][]>()
+
+  const result = Iter.from([1, 'two'])
+    .filter((value) => typeof value === 'string')
+    .skip(1)
+    .enumerate()
+    .map(([index, value]) => {
+      expectTypeOf(index).toEqualTypeOf<number>()
+      expectTypeOf(value).toEqualTypeOf<string>()
+      return value
+    })
+    .collect()
+
+  expectTypeOf(result).toEqualTypeOf<string[]>()
+})
+
+test('infers fold accumulators independently of element types', () => {
+  const text = Iter.from([1, 2]).fold('', (accumulator, value) => {
+    expectTypeOf(accumulator).toEqualTypeOf<string>()
+    expectTypeOf(value).toEqualTypeOf<number>()
+    return accumulator + value
+  })
+  expectTypeOf(text).toEqualTypeOf<string>()
+
+  const summary = Iter.from([1, 2])
+    .enumerate()
+    .fold({ total: 0 }, (accumulator, [index, value]) => {
+      expectTypeOf(accumulator).toEqualTypeOf<{ total: number }>()
+      expectTypeOf(index).toEqualTypeOf<number>()
+      expectTypeOf(value).toEqualTypeOf<number>()
+      return { total: accumulator.total + index + value }
+    })
+  expectTypeOf(summary).toEqualTypeOf<{ total: number }>()
+
+  const collected = Iter.from([1, 2]).fold<string[]>([], (values, value) => [
+    ...values,
+    String(value),
+  ])
+  expectTypeOf(collected).toEqualTypeOf<string[]>()
+  expectTypeOf(Iter.from([]).fold(0, (total) => total)).toEqualTypeOf<number>()
+})

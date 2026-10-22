@@ -140,6 +140,53 @@ export class Iter<T> implements IterableIterator<T> {
     )
   }
 
+  skip(count: number): Iter<T> {
+    if (!Number.isInteger(count) || count < 0) {
+      throw new RangeError('Iter.skip() requires a non-negative integer')
+    }
+
+    const source = this
+    let remaining = count
+
+    return new Iter<T>(
+      () => {
+        while (remaining > 0) {
+          const result = source.next()
+          if (result.done) {
+            remaining = 0
+            return { done: true, value: undefined }
+          }
+
+          remaining--
+        }
+
+        return source.next()
+      },
+      () => {
+        source.return()
+      }
+    )
+  }
+
+  enumerate(): Iter<[number, T]> {
+    const source = this
+    let index = 0
+
+    return new Iter<[number, T]>(
+      () => {
+        const result = source.next()
+        if (result.done) {
+          return { done: true, value: undefined }
+        }
+
+        return { done: false, value: [index++, result.value] }
+      },
+      () => {
+        source.return()
+      }
+    )
+  }
+
   find<S extends T>(predicate: (value: T) => value is S): Option<S>
   find(predicate: (value: T) => boolean): Option<T>
   find(predicate: (value: T) => boolean): Option<T> {
@@ -153,6 +200,16 @@ export class Iter<T> implements IterableIterator<T> {
 
   all(predicate: (value: T) => boolean): boolean {
     return this.find((value) => !predicate(value)).isNone()
+  }
+
+  fold<U>(initial: U, reducer: (accumulator: U, value: T) => U): U {
+    let accumulator = initial
+
+    for (const value of this) {
+      accumulator = reducer(accumulator, value)
+    }
+
+    return accumulator
   }
 
   collect(): T[] {

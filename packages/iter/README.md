@@ -1,6 +1,6 @@
 # @tsr/iter
 
-同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`filter`、`take`、`find`、`any`、`all`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 返回 `@tsr/core` 的 `Option`。
+同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`filter`、`take`、`skip`、`enumerate`、`find`、`any`、`all`、`fold`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 返回 `@tsr/core` 的 `Option`。
 
 ```ts
 import { Iter } from '@tsr/iter'
@@ -41,10 +41,12 @@ const numbers = Iter.from([1, 'two', 3])
 
 ## 惰性与单次消费
 
-- `map`、`filter`、`take` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`collect()` 和 `for...of` 驱动消费。
+- `map`、`filter`、`take`、`skip`、`enumerate` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`collect()` 和 `for...of` 驱动消费。
 - `collect()` 收集当前剩余元素，再次调用返回空数组。
 - 从同一 `Iter` 派生的链共享消费进度；它们不复制数据，也不会各自从头开始。需要重新遍历数组时，重新调用 `Iter.from(array)`。
 - `take(n)` 最多从直接上游读取 `n` 个元素，不额外预读；`take(0)` 不初始化源。`n` 必须是非负整数，否则立即抛出 `RangeError`。
+- `skip(n)` 在首次消费时从直接上游跳过最多 `n` 项，之后正常产出剩余元素，不会重复跳过。`n` 的校验规则与 `take` 一致；`skip(0)` 不跳过任何元素。
+- `enumerate()` 惰性产出 `[number, T]` 元组。每条派生链从 0 编号，只统计该链产出的元素；部分消费后编号连续。
 - `filter` 可能需要读取多个源元素才能产出一个匹配项。对无限源直接调用 `collect()`，或过滤条件始终不匹配时，处理可能永远无法结束。
 
 ```ts
@@ -55,6 +57,15 @@ mapped.next() // { done: false, value: 10 }
 source.take(1).collect() // [2]
 mapped.collect() // [30]
 mapped.collect() // []
+```
+
+`skip` 与 `enumerate` 的调用顺序决定编号含义：
+
+```ts
+Iter.from(['a', 'b', 'c']).skip(1).enumerate().collect()
+// [[0, 'b'], [1, 'c']]
+Iter.from(['a', 'b', 'c']).enumerate().skip(1).collect()
+// [[1, 'b'], [2, 'c']]
 ```
 
 ## 查找与短路判断
@@ -84,6 +95,28 @@ const number = Iter.from([1, 'two']).find(
 
 对无限源，只有能在有限步内触发短路的条件才会返回。无限源中不存在匹配项时，`find`、`any` 可能永远无法结束；所有元素始终匹配时，`all` 也可能永远无法结束。正常短路后若要释放源资源，可显式调用 `return()`。
 
+## 累积剩余元素
+
+`fold<U>(initial: U, reducer: (accumulator: U, value: T) => U): U` 从当前位置依次消费剩余元素，将每次回调的返回值作为下一次的累积值。累积值类型可以与元素类型不同，也可以显式指定泛型。
+
+```ts
+const total = Iter.from([1, 2, 3, 4])
+  .skip(1)
+  .take(2)
+  .fold(0, (sum, value) => sum + value)
+// 5
+
+const labels = Iter.from([10, 20])
+  .enumerate()
+  .fold<string[]>([], (values, [index, value]) => [
+    ...values,
+    `${index}:${value}`,
+  ])
+// ['0:10', '1:20']
+```
+
+空源、已耗尽或已关闭的链直接返回传入的初始值，不调用回调。`fold` 消费完当前链后，再次消费该链不会得到元素。它不会额外关闭 `take` 限制后仍有剩余元素的上游；需要释放资源时可显式调用 `return()`。对无限源直接调用 `fold` 可能永远无法结束，可先通过 `take` 限制消费范围。
+
 ## 提前退出与资源清理
 
 `for...of` 中的 `break`、函数 `return` 和循环体抛错会调用迭代器的 `return()`。也可以手动调用 `iter.return()`，结束当前链并向上传递关闭，调用已经初始化的源迭代器的 `return()`。这会执行普通生成器中的 `finally` 清理，并影响共享该源的其他链。关闭后不能恢复消费；重复关闭不会再次清理。
@@ -110,7 +143,7 @@ try {
 }
 ```
 
-源迭代或 `map`、`filter`、`find`、`any`、`all` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
+源迭代或 `map`、`filter`、`find`、`any`、`all`、`fold` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
 
 关闭依照 JavaScript 迭代协议调用源的 `return()`，不会继续读取源。资源清理应在 `finally` 中同步完成，避免在 `finally` 中继续 `yield`。
 
