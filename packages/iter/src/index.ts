@@ -266,6 +266,71 @@ export class Iter<T> implements IterableIterator<T> {
     )
   }
 
+  chain<U>(values: Iterable<U>): Iter<T | U> {
+    const source = this
+    const other = Iter.from(values)
+    let sourceFinished = false
+
+    return new Iter<T | U>(
+      () => {
+        if (!sourceFinished) {
+          const result = source.next()
+          if (!result.done) {
+            return result
+          }
+          sourceFinished = true
+        }
+        return other.next()
+      },
+      () => {
+        try {
+          source.return()
+        } catch (error) {
+          try {
+            other.return()
+          } catch {
+            // 两个源都需尝试关闭，保留先发生的清理异常。
+          }
+          throw error
+        }
+        other.return()
+      }
+    )
+  }
+
+  zip<U>(values: Iterable<U>): Iter<[T, U]> {
+    const source = this
+    const other = Iter.from(values)
+
+    return new Iter<[T, U]>(
+      () => {
+        const left = source.next()
+        if (left.done) {
+          return { done: true, value: undefined }
+        }
+
+        const right = other.next()
+        if (right.done) {
+          return { done: true, value: undefined }
+        }
+        return { done: false, value: [left.value, right.value] }
+      },
+      () => {
+        try {
+          source.return()
+        } catch (error) {
+          try {
+            other.return()
+          } catch {
+            // 两个源都需尝试关闭，保留先发生的清理异常。
+          }
+          throw error
+        }
+        other.return()
+      }
+    )
+  }
+
   find<S extends T>(predicate: (value: T) => value is S): Option<S>
   find(predicate: (value: T) => boolean): Option<T>
   find(predicate: (value: T) => boolean): Option<T> {

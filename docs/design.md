@@ -417,7 +417,7 @@ const selected = Iter.from(values)
 
 ### 7.2 基础 API
 
-当前已实现 `Iter.from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。输入类型、共享消费进度和资源清理规则见 [@tsr/iter 使用说明](../packages/iter/README.md)。
+当前已实现 `Iter.from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`chain`、`zip`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。输入类型、共享消费进度和资源清理规则见 [@tsr/iter 使用说明](../packages/iter/README.md)。
 
 以下为目标 API 列表，尚未全部实现：
 

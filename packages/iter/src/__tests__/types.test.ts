@@ -320,3 +320,69 @@ test('requires synchronous iterable results for flatMap and flatten', () => {
   expectTypeOf<Iter<number | number[]>>().not.toExtend<Receiver>()
   expectTypeOf<Iter<AsyncIterable<number>>>().not.toExtend<Receiver>()
 })
+
+test('infers chain unions and preserves literal and empty input types', () => {
+  expectTypeOf(Iter.from([1]).chain(new Set(['two']))).toEqualTypeOf<
+    Iter<number | string>
+  >()
+  expectTypeOf(
+    Iter.from([1] as const)
+      .chain(['two', false] as const)
+      .collect()
+  ).toEqualTypeOf<(1 | 'two' | false)[]>()
+  expectTypeOf(Iter.from([]).chain([1]).collect()).toEqualTypeOf<number[]>()
+  expectTypeOf(Iter.from([1]).chain([]).collect()).toEqualTypeOf<number[]>()
+  expectTypeOf(Iter.from([]).chain([]).collect()).toEqualTypeOf<never[]>()
+  expectTypeOf(Iter.from([undefined]).chain([null]).collect()).toEqualTypeOf<
+    (undefined | null)[]
+  >()
+})
+
+test('infers zip tuples from readonly and nested iterable inputs', () => {
+  expectTypeOf(Iter.from([1]).zip(['two'])).toEqualTypeOf<
+    Iter<[number, string]>
+  >()
+  expectTypeOf(
+    Iter.from([1, 2] as const)
+      .zip(['one', 'two'] as const)
+      .collect()
+  ).toEqualTypeOf<[1 | 2, 'one' | 'two'][]>()
+  expectTypeOf(
+    Iter.from([true])
+      .zip(new Map([['one', 1]]))
+      .collect()
+  ).toEqualTypeOf<[boolean, [string, number]][]>()
+  expectTypeOf(Iter.from([undefined]).zip([null]).collect()).toEqualTypeOf<
+    [undefined, null][]
+  >()
+  expectTypeOf(Iter.from([]).zip(['one']).collect()).toEqualTypeOf<
+    [never, string][]
+  >()
+})
+
+test('infers callbacks after combining and narrowing sources', () => {
+  const values = Iter.from([1])
+    .chain(['two'])
+    .filter((value) => typeof value === 'string')
+    .zip(Iter.from([true]))
+    .map(([value, enabled]) => {
+      expectTypeOf(value).toEqualTypeOf<string>()
+      expectTypeOf(enabled).toEqualTypeOf<boolean>()
+      return enabled ? value : ''
+    })
+    .collect()
+
+  expectTypeOf(values).toEqualTypeOf<string[]>()
+})
+
+test('requires synchronous iterable inputs for chain and zip', () => {
+  type ChainInput = Parameters<Iter<number>['chain']>[0]
+  type ZipInput = Parameters<Iter<number>['zip']>[0]
+
+  expectTypeOf<Iterator<number>>().not.toExtend<ChainInput>()
+  expectTypeOf<Promise<number[]>>().not.toExtend<ChainInput>()
+  expectTypeOf<AsyncIterable<number>>().not.toExtend<ChainInput>()
+  expectTypeOf<Iterator<number>>().not.toExtend<ZipInput>()
+  expectTypeOf<Promise<number[]>>().not.toExtend<ZipInput>()
+  expectTypeOf<AsyncIterable<number>>().not.toExtend<ZipInput>()
+})

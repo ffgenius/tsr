@@ -1,6 +1,6 @@
 # @tsr/iter
 
-同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
+同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`chain`、`zip`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
 
 ```ts
 import { Iter } from '@tsr/iter'
@@ -41,7 +41,7 @@ const numbers = Iter.from([1, 'two', 3])
 
 ## 惰性与单次消费
 
-- `map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
+- `map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`chain`、`zip` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
 - `collect()` 收集当前剩余元素，再次调用返回空数组。
 - 从同一 `Iter` 派生的链共享消费进度；它们不复制数据，也不会各自从头开始。需要重新遍历数组时，重新调用 `Iter.from(array)`。
 - `take(n)` 最多从直接上游读取 `n` 个元素，不额外预读；`take(0)` 不初始化源。`n` 必须是非负整数，否则立即抛出 `RangeError`。
@@ -116,6 +116,29 @@ Iter.from([[1], ['two']] as const)
 `take(n)` 达到上限和 `find` 等操作正常短路时，内外层保持可继续消费；需要清理时应保留展开链或其下游并调用 `return()`。显式关闭、循环提前退出或迭代异常会先关闭当前活动内层，再关闭外层，不初始化尚未访问的内层。即使内层清理抛错，也会尝试关闭外层；显式关闭时保留先发生的清理错误，迭代或回调抛错时保留原始错误。正常耗尽的内层不会额外调用 `return()`。
 
 只有同步可迭代对象可以展开，Promise、AsyncIterable 和仅有 `next()` 的 Iterator 不受支持。无限内层会阻止后续外层项被访问；无限外层持续产生空内层时，后接 `take(1)` 也可能无法结束。
+
+## 连接与配对
+
+`chain<U>(values: Iterable<U>): Iter<T | U>` 先产出当前源的剩余元素，耗尽后才获取并消费第二个源。两个源的元素类型可以不同，结果推导为联合类型。
+
+`zip<U>(values: Iterable<U>): Iter<[T, U]>` 每次先读取左侧，再读取右侧，产出一个元组；任意一侧耗尽，配对链就永久结束。左侧先结束时，不再读取或初始化右侧；右侧先结束时，本轮已经读取的一个左侧元素无法配对，仍会被消费。
+
+```ts
+Iter.from([1, 2]).chain(['three']).collect()
+// [1, 2, 'three']，类型为 (number | string)[]。
+Iter.from(['Ada', 'Lin']).zip([10, 20]).collect()
+// [['Ada', 10], ['Lin', 20]]，类型为 [string, number][]。
+
+const left = Iter.from([1, 2, 3])
+left.zip(['a']).collect() // [[1, 'a']]，2 已在第二轮读取。
+left.collect() // [3]
+```
+
+两者均接受同步可迭代对象，创建组合链时不初始化第二个源。传入已有 `Iter` 时共享其当前消费进度，直接消费任意一侧也会影响组合链后续结果。`take` 达到上限或查找正常短路时保留剩余进度；`zip` 正常结束时也不会自动关闭尚有剩余元素的源。需要清理时，保留组合链或其下游并调用 `return()`，即使该链已经结束也可关闭源。
+
+显式关闭、循环提前退出或迭代异常会尝试关闭两个源，不初始化尚未访问的第二个源。显式关闭按左、右顺序尝试清理；即使左侧清理抛错，也会尝试右侧，并保留先发生的清理错误。迭代或下游回调抛错时保留原始错误。
+
+`chain` 的第一源无限时不会访问第二源；`zip` 在任意一侧于有限步内耗尽时结束。两个源都无限时，应通过 `take` 等操作限制消费范围。
 
 ## 查找与短路判断
 
