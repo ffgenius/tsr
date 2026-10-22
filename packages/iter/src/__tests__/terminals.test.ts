@@ -366,3 +366,195 @@ describe('fold', () => {
     expect(closed).toBe(1)
   })
 })
+
+describe('reduce', () => {
+  it('uses the first remaining value as the accumulator and reduces in order', () => {
+    const source = Iter.from([10, 5, 2, 1])
+    source.next()
+    const calls: [number, number][] = []
+    const result = source.reduce((accumulator, value) => {
+      calls.push([accumulator, value])
+      return accumulator - value
+    })
+
+    expect(result).toBeInstanceOf(Option)
+    expect(result.unwrap()).toBe(2)
+    expect(calls).toEqual([
+      [5, 2],
+      [3, 1],
+    ])
+    expect(source.collect()).toEqual([])
+    expect(source.reduce((left, right) => left + right).isNone()).toBe(true)
+  })
+
+  it('returns None for empty, exhausted, or closed inputs without a callback', () => {
+    const exhausted = Iter.from([1])
+    exhausted.collect()
+    const closed = Iter.from([1])
+    closed.return()
+    let calls = 0
+
+    for (const source of [Iter.from<number>([]), exhausted, closed]) {
+      expect(
+        source
+          .reduce((value) => {
+            calls++
+            return value
+          })
+          .isNone()
+      ).toBe(true)
+    }
+    expect(calls).toBe(0)
+  })
+
+  it('returns a singleton unchanged, including undefined, without a callback', () => {
+    let calls = 0
+    const value = { count: 1 }
+    const result = Iter.from([value]).reduce((accumulator) => {
+      calls++
+      return accumulator
+    })
+    const undefinedResult = Iter.from([undefined]).reduce(() => {
+      calls++
+      return undefined
+    })
+
+    expect(result.unwrap()).toBe(value)
+    expect(undefinedResult.isSome()).toBe(true)
+    expect(undefinedResult.unwrap()).toBeUndefined()
+    expect(
+      Iter.from([1, undefined])
+        .reduce(() => undefined)
+        .isSome()
+    ).toBe(true)
+    expect(calls).toBe(0)
+  })
+
+  it('composes with adapters and leaves the remainder of a bounded infinite source', () => {
+    let reads = 0
+    let closed = 0
+    function* values() {
+      try {
+        while (true) {
+          if (++reads > 5) {
+            throw new Error('Read past the take limit')
+          }
+          yield reads
+        }
+      } finally {
+        closed++
+      }
+    }
+    const source = Iter.from(values())
+    const seen: number[] = []
+    const iter = source
+      .filterMap((value) =>
+        value % 2 === 0 ? Option.some(value * 10) : Option.none()
+      )
+      .inspect((value) => seen.push(value))
+      .take(2)
+
+    expect(iter.reduce((left, right) => left + right).unwrap()).toBe(60)
+    expect(seen).toEqual([20, 40])
+    expect(reads).toBe(4)
+    expect(closed).toBe(0)
+    expect(source.next()).toEqual({ done: false, value: 5 })
+    iter.return()
+    expect(closed).toBe(1)
+  })
+
+  it('completes generator cleanup on normal exhaustion', () => {
+    let closed = 0
+    function* values() {
+      try {
+        yield 1
+        yield 2
+      } finally {
+        closed++
+      }
+    }
+
+    expect(
+      Iter.from<number>(values())
+        .reduce((left, right) => left + right)
+        .unwrap()
+    ).toBe(3)
+    expect(closed).toBe(1)
+  })
+})
+
+describe('filterMap, inspect, and reduce errors', () => {
+  it.each(['filterMap', 'inspect', 'reduce'] as const)(
+    '%s preserves a callback error when cleanup also throws',
+    (method) => {
+      const error = new Error('callback failed')
+      let closed = 0
+      const values: Iterable<number> = {
+        [Symbol.iterator]() {
+          return {
+            next: () => ({ done: false, value: 1 }),
+            return() {
+              closed++
+              throw new Error('cleanup failed')
+            },
+          }
+        },
+      }
+      const source = Iter.from(values)
+      const sibling = source.map(String)
+      const iter = source.skip(1).take(3)
+      const fail = (): never => {
+        throw error
+      }
+      const run = () =>
+        method === 'reduce' ? iter.reduce(fail) : iter[method](fail).collect()
+
+      expect(run).toThrow(error)
+      expect(iter.collect()).toEqual([])
+      expect(source.collect()).toEqual([])
+      expect(sibling.collect()).toEqual([])
+      iter.return()
+      expect(closed).toBe(1)
+    }
+  )
+
+  it.each(['filterMap', 'inspect', 'reduce'] as const)(
+    '%s preserves source errors and closes once',
+    (method) => {
+      const error = new Error('source failed')
+      let closed = 0
+      let reads = 0
+      const values: Iterable<number> = {
+        [Symbol.iterator]() {
+          return {
+            next() {
+              if (++reads > 1) {
+                throw error
+              }
+              return { done: false, value: 1 }
+            },
+            return() {
+              closed++
+              throw new Error('cleanup failed')
+            },
+          }
+        },
+      }
+      const source = Iter.from(values)
+      const run = () => {
+        if (method === 'reduce') {
+          return source.reduce((left, right) => left + right)
+        }
+        if (method === 'filterMap') {
+          return source.filterMap(() => Option.none()).collect()
+        }
+        return source.inspect(() => {}).collect()
+      }
+
+      expect(run).toThrow(error)
+      expect(source.collect()).toEqual([])
+      source.return()
+      expect(closed).toBe(1)
+    }
+  )
+})

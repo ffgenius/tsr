@@ -1,6 +1,6 @@
 # @tsr/iter
 
-同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`filter`、`take`、`skip`、`enumerate`、`find`、`any`、`all`、`fold`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 返回 `@tsr/core` 的 `Option`。
+同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate`、`find`、`any`、`all`、`fold`、`reduce`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。
 
 ```ts
 import { Iter } from '@tsr/iter'
@@ -41,13 +41,13 @@ const numbers = Iter.from([1, 'two', 3])
 
 ## 惰性与单次消费
 
-- `map`、`filter`、`take`、`skip`、`enumerate` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`collect()` 和 `for...of` 驱动消费。
+- `map`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`enumerate` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`fold()`、`reduce()`、`collect()` 和 `for...of` 驱动消费。
 - `collect()` 收集当前剩余元素，再次调用返回空数组。
 - 从同一 `Iter` 派生的链共享消费进度；它们不复制数据，也不会各自从头开始。需要重新遍历数组时，重新调用 `Iter.from(array)`。
 - `take(n)` 最多从直接上游读取 `n` 个元素，不额外预读；`take(0)` 不初始化源。`n` 必须是非负整数，否则立即抛出 `RangeError`。
 - `skip(n)` 在首次消费时从直接上游跳过最多 `n` 项，之后正常产出剩余元素，不会重复跳过。`n` 的校验规则与 `take` 一致；`skip(0)` 不跳过任何元素。
 - `enumerate()` 惰性产出 `[number, T]` 元组。每条派生链从 0 编号，只统计该链产出的元素；部分消费后编号连续。
-- `filter` 可能需要读取多个源元素才能产出一个匹配项。对无限源直接调用 `collect()`，或过滤条件始终不匹配时，处理可能永远无法结束。
+- `filter` 和 `filterMap` 可能需要读取多个源元素才能产出一个匹配项。对无限源直接调用 `collect()`，或过滤条件始终不匹配时，处理可能永远无法结束。
 
 ```ts
 const source = Iter.from([1, 2, 3])
@@ -67,6 +67,26 @@ Iter.from(['a', 'b', 'c']).skip(1).enumerate().collect()
 Iter.from(['a', 'b', 'c']).enumerate().skip(1).collect()
 // [[1, 'b'], [2, 'c']]
 ```
+
+## 转换并筛选与观察元素
+
+`filterMap<U>(mapper: (value: T) => Option<U>): Iter<U>` 在消费时转换并筛选元素：回调返回 `Some(value)` 时产出该值，返回 `None` 时跳过。`Some(undefined)`、`Some(null)` 和其他假值都被保留。输出类型根据回调返回的 `Option` 推导。
+
+`inspect(observer: (value: T) => void): Iter<T>` 在元素经过当前链位置时调用回调，然后继续产出同一个元素。回调返回值被忽略，元素类型保持不变。它不会复制或冻结对象；回调修改对象时，修改会反映到后续操作中。
+
+```ts
+import { Option } from '@tsr/core'
+
+const seen: string[] = []
+const names = Iter.from([{ name: 'Ada' }, { name: null }, { name: 'Lin' }])
+  .filterMap((user) => Option.fromNullable(user.name))
+  .inspect((name) => seen.push(name))
+  .take(1)
+  .collect()
+// names 和 seen 都是 ['Ada']，其余源元素未读取。
+```
+
+`inspect` 放在筛选之前会观察筛选所读取的每个元素，放在筛选之后只会观察保留下来的元素。对无限源使用 `filterMap` 且始终返回 `None` 时，即使后接 `take(1)`，也可能永远无法产出结果。
 
 ## 查找与短路判断
 
@@ -117,6 +137,16 @@ const labels = Iter.from([10, 20])
 
 空源、已耗尽或已关闭的链直接返回传入的初始值，不调用回调。`fold` 消费完当前链后，再次消费该链不会得到元素。它不会额外关闭 `take` 限制后仍有剩余元素的上游；需要释放资源时可显式调用 `return()`。对无限源直接调用 `fold` 可能永远无法结束，可先通过 `take` 限制消费范围。
 
+`reduce(reducer: (accumulator: T, value: T) => T): Option<T>` 使用当前剩余元素中的首项作为初始值，随后按顺序累积；回调的参数和返回值类型都是元素类型 `T`。需要指定初始值或使用不同累积类型时，使用 `fold`。
+
+```ts
+Iter.from([1, 2, 3]).reduce((sum, value) => sum + value) // Some(6)
+Iter.from<number>([]).reduce((sum, value) => sum + value) // None
+Iter.from([undefined]).reduce(() => undefined) // Some(undefined)
+```
+
+空源、已耗尽或已关闭的链返回 `None`；单元素源直接返回 `Some(首项)`，以上情况都不会调用回调。`reduce` 与 `fold` 一样消费当前链的剩余元素，并遵循相同的无限源与资源清理规则。
+
 ## 提前退出与资源清理
 
 `for...of` 中的 `break`、函数 `return` 和循环体抛错会调用迭代器的 `return()`。也可以手动调用 `iter.return()`，结束当前链并向上传递关闭，调用已经初始化的源迭代器的 `return()`。这会执行普通生成器中的 `finally` 清理，并影响共享该源的其他链。关闭后不能恢复消费；重复关闭不会再次清理。
@@ -143,7 +173,7 @@ try {
 }
 ```
 
-源迭代或 `map`、`filter`、`find`、`any`、`all`、`fold` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
+源迭代或 `map`、`filter`、`filterMap`、`inspect`、`find`、`any`、`all`、`fold`、`reduce` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
 
 关闭依照 JavaScript 迭代协议调用源的 `return()`，不会继续读取源。资源清理应在 `finally` 中同步完成，避免在 `finally` 中继续 `yield`。
 

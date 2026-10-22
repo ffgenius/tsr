@@ -1,5 +1,4 @@
-import type { Option } from '@tsr/core'
-
+import { Option } from '@tsr/core'
 import { expectTypeOf, test } from 'vite-plus/test'
 
 import { Iter } from '../index.js'
@@ -156,4 +155,76 @@ test('infers fold accumulators independently of element types', () => {
   ])
   expectTypeOf(collected).toEqualTypeOf<string[]>()
   expectTypeOf(Iter.from([]).fold(0, (total) => total)).toEqualTypeOf<number>()
+})
+
+test('infers filterMap output types from Option callbacks', () => {
+  const numbers = Iter.from([1, 'two', 3]).filterMap((value) => {
+    expectTypeOf(value).toEqualTypeOf<number | string>()
+    return typeof value === 'number' ? Option.some(value) : Option.none()
+  })
+  expectTypeOf(numbers).toEqualTypeOf<Iter<number>>()
+  expectTypeOf(numbers.collect()).toEqualTypeOf<number[]>()
+
+  expectTypeOf(
+    Iter.from([1, 'two'] as const)
+      .filterMap(Option.some)
+      .collect()
+  ).toEqualTypeOf<(1 | 'two')[]>()
+  expectTypeOf(
+    Iter.from([1])
+      .filterMap(() => Option.some(undefined))
+      .collect()
+  ).toEqualTypeOf<undefined[]>()
+  expectTypeOf(
+    Iter.from([1])
+      .filterMap(() => Option.none())
+      .collect()
+  ).toEqualTypeOf<never[]>()
+})
+
+test('preserves types through inspect and infers chained callbacks', () => {
+  const iter = Iter.from([1, 'two'] as const).inspect((value) => {
+    expectTypeOf(value).toEqualTypeOf<1 | 'two'>()
+    return true
+  })
+  expectTypeOf(iter).toEqualTypeOf<Iter<1 | 'two'>>()
+
+  const result = Iter.from([1, 'two'])
+    .filterMap((value) =>
+      typeof value === 'string' ? Option.some(value) : Option.none()
+    )
+    .inspect((value) => {
+      expectTypeOf(value).toEqualTypeOf<string>()
+    })
+    .enumerate()
+    .map(([index, value]) => {
+      expectTypeOf(index).toEqualTypeOf<number>()
+      expectTypeOf(value).toEqualTypeOf<string>()
+      return value
+    })
+    .collect()
+  expectTypeOf(result).toEqualTypeOf<string[]>()
+})
+
+test('infers reduce results from the element type', () => {
+  const result = Iter.from([1, 2]).reduce((accumulator, value) => {
+    expectTypeOf(accumulator).toEqualTypeOf<number>()
+    expectTypeOf(value).toEqualTypeOf<number>()
+    return accumulator + value
+  })
+  expectTypeOf(result).toEqualTypeOf<Option<number>>()
+  expectTypeOf(
+    Iter.from([1, 'two'] as const).reduce((value) => value)
+  ).toEqualTypeOf<Option<1 | 'two'>>()
+  expectTypeOf(Iter.from([undefined]).reduce(() => undefined)).toEqualTypeOf<
+    Option<undefined>
+  >()
+  expectTypeOf(Iter.from([]).reduce((value) => value)).toEqualTypeOf<
+    Option<never>
+  >()
+  expectTypeOf(
+    Iter.from([1, 2])
+      .map(String)
+      .reduce((left, right) => left + right)
+  ).toEqualTypeOf<Option<string>>()
 })

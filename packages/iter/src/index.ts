@@ -111,6 +111,37 @@ export class Iter<T> implements IterableIterator<T> {
     )
   }
 
+  filterMap<U>(mapper: (value: T) => Option<U>): Iter<U> {
+    const source = this
+
+    return new Iter<U>(
+      () => {
+        let result = source.next()
+
+        while (!result.done) {
+          const mapped = mapper(result.value)
+          if (mapped.isSome()) {
+            return { done: false, value: mapped.unwrap() }
+          }
+
+          result = source.next()
+        }
+
+        return { done: true, value: undefined }
+      },
+      () => {
+        source.return()
+      }
+    )
+  }
+
+  inspect(observer: (value: T) => void): Iter<T> {
+    return this.map((value) => {
+      observer(value)
+      return value
+    })
+  }
+
   take(count: number): Iter<T> {
     if (!Number.isInteger(count) || count < 0) {
       throw new RangeError('Iter.take() requires a non-negative integer')
@@ -210,6 +241,15 @@ export class Iter<T> implements IterableIterator<T> {
     }
 
     return accumulator
+  }
+
+  reduce(reducer: (accumulator: T, value: T) => T): Option<T> {
+    const first = this.next()
+    if (first.done) {
+      return Option.none()
+    }
+
+    return Option.some(this.fold(first.value, reducer))
   }
 
   collect(): T[] {

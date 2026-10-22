@@ -1,3 +1,4 @@
+import { Option } from '@tsr/core'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { Iter } from '../index.js'
@@ -205,4 +206,169 @@ describe('skip and enumerate adapters', () => {
       expect(closed).toBe(1)
     }
   )
+})
+
+describe('filterMap and inspect adapters', () => {
+  it('keeps callbacks lazy and only reads enough to produce requested values', () => {
+    let initialized = 0
+    let reads = 0
+    const inspected: number[] = []
+    const mapped: number[] = []
+    const values: Iterable<number> = {
+      [Symbol.iterator]() {
+        initialized++
+        return {
+          next() {
+            if (++reads > 4) {
+              throw new Error('Read past the take limit')
+            }
+            return { done: false, value: reads }
+          },
+        }
+      },
+    }
+    const source = Iter.from(values)
+    const iter = source
+      .inspect((value) => inspected.push(value))
+      .filterMap((value) => {
+        mapped.push(value)
+        return value % 2 === 0 ? Option.some(String(value)) : Option.none()
+      })
+      .take(2)
+
+    expect([initialized, reads]).toEqual([0, 0])
+    expect(inspected).toEqual([])
+    expect(mapped).toEqual([])
+    expect(iter.next()).toEqual({ done: false, value: '2' })
+    expect(iter.collect()).toEqual(['4'])
+    expect([initialized, reads]).toEqual([1, 4])
+    expect(inspected).toEqual([1, 2, 3, 4])
+    expect(mapped).toEqual([1, 2, 3, 4])
+    iter.return()
+  })
+
+  it('skips only None and preserves Some with undefined or falsy values', () => {
+    const values: Option<undefined | null | boolean | number | string>[] = [
+      Option.none(),
+      Option.some(undefined),
+      Option.some(null),
+      Option.some(false),
+      Option.some(0),
+      Option.some(''),
+    ]
+
+    expect(
+      Iter.from(values)
+        .filterMap((value) => value)
+        .collect()
+    ).toEqual([undefined, null, false, 0, ''])
+    expect(
+      Iter.from([1, 2])
+        .filterMap(() => Option.none())
+        .collect()
+    ).toEqual([])
+  })
+
+  it('preserves element identity and ignores inspect callback return values', () => {
+    const value = { name: 'one' }
+    const seen: (typeof value)[] = []
+    const result = Iter.from([value])
+      .inspect((item) => {
+        seen.push(item)
+        return 'ignored'
+      })
+      .collect()
+
+    expect(result[0]).toBe(value)
+    expect(seen[0]).toBe(value)
+  })
+
+  it('runs inspect at its chain position and shares consumption progress', () => {
+    const source = Iter.from([0, 1, 2, 3, 4, 5])
+    source.next()
+    const seen: string[] = []
+    const iter = source
+      .filterMap((value) =>
+        value % 2 === 0 ? Option.some(String(value)) : Option.none()
+      )
+      .inspect((value) => seen.push(value))
+
+    expect(iter.next()).toEqual({ done: false, value: '2' })
+    expect(source.next()).toEqual({ done: false, value: 3 })
+    expect(iter.take(1).collect()).toEqual(['4'])
+    expect(seen).toEqual(['2', '4'])
+    expect(source.collect()).toEqual([5])
+    expect(iter.collect()).toEqual([])
+  })
+
+  it('does not call callbacks for empty, exhausted, or closed sources', () => {
+    const exhausted = Iter.from([1])
+    exhausted.collect()
+    const closed = Iter.from([1])
+    closed.return()
+    let calls = 0
+
+    for (const source of [Iter.from<number>([]), exhausted, closed]) {
+      const iter = source
+        .filterMap((value) => {
+          calls++
+          return Option.some(value)
+        })
+        .inspect(() => {
+          calls++
+        })
+      expect(iter.collect()).toEqual([])
+    }
+    expect(calls).toBe(0)
+  })
+
+  it('does not initialize a source when limited to zero or closed before use', () => {
+    let initialized = 0
+    const values: Iterable<number> = {
+      [Symbol.iterator]() {
+        initialized++
+        return [1, 2][Symbol.iterator]()
+      },
+    }
+    const seen: number[] = []
+    const iter = Iter.from(values)
+      .filterMap(Option.some)
+      .inspect((value) => seen.push(value))
+
+    expect(iter.take(0).collect()).toEqual([])
+    iter.return()
+    expect(iter.collect()).toEqual([])
+    expect(initialized).toBe(0)
+    expect(seen).toEqual([])
+  })
+
+  it('closes through both adapters on a loop break', () => {
+    let closed = 0
+    function* values() {
+      try {
+        yield 1
+        yield 2
+        yield 3
+      } finally {
+        closed++
+      }
+    }
+    const source = Iter.from(values())
+    const seen: number[] = []
+    const iter = source
+      .filterMap((value) => (value > 1 ? Option.some(value) : Option.none()))
+      .inspect((value) => seen.push(value))
+    const result: number[] = []
+
+    for (const value of iter) {
+      result.push(value)
+      break
+    }
+    expect(result).toEqual([2])
+    expect(seen).toEqual([2])
+    expect(closed).toBe(1)
+    iter.return()
+    expect(closed).toBe(1)
+    expect(source.collect()).toEqual([])
+  })
 })
