@@ -1,3 +1,5 @@
+import { Option } from '@tsr/core'
+
 type IterResult<T> = IteratorResult<T, undefined>
 
 export class Iter<T> implements IterableIterator<T> {
@@ -136,6 +138,21 @@ export class Iter<T> implements IterableIterator<T> {
         source.return()
       }
     )
+  }
+
+  find<S extends T>(predicate: (value: T) => value is S): Option<S>
+  find(predicate: (value: T) => boolean): Option<T>
+  find(predicate: (value: T) => boolean): Option<T> {
+    const result = this.filter(predicate).next()
+    return result.done ? Option.none() : Option.some(result.value)
+  }
+
+  any(predicate: (value: T) => boolean): boolean {
+    return this.find(predicate).isSome()
+  }
+
+  all(predicate: (value: T) => boolean): boolean {
+    return this.find((value) => !predicate(value)).isNone()
   }
 
   collect(): T[] {

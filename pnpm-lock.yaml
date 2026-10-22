@@ -69,6 +69,12 @@ importers:
 
   packages/core: {}
 
+  packages/iter:
+    dependencies:
+      '@tsr/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/pattern:
     dependencies:
       ts-pattern:

@@ -16,5 +16,8 @@
     "build": "vp pack",
     "dev": "vp pack -w",
     "test": "vp test"
+  },
+  "dependencies": {
+    "@tsr/core": "workspace:*"
   }
 }

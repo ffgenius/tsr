@@ -1,6 +1,6 @@
 # @tsr/iter
 
-同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`filter`、`take`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。
+同步、惰性、单次消费的迭代器。当前提供 `from`、`map`、`filter`、`take`、`find`、`any`、`all`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find` 返回 `@tsr/core` 的 `Option`。
 
 ```ts
 import { Iter } from '@tsr/iter'
@@ -41,7 +41,7 @@ const numbers = Iter.from([1, 'two', 3])
 
 ## 惰性与单次消费
 
-- `map`、`filter`、`take` 创建处理链时不读取源；`next()`、`collect()` 和 `for...of` 驱动消费。
+- `map`、`filter`、`take` 创建处理链时不读取源；`next()`、`find()`、`any()`、`all()`、`collect()` 和 `for...of` 驱动消费。
 - `collect()` 收集当前剩余元素，再次调用返回空数组。
 - 从同一 `Iter` 派生的链共享消费进度；它们不复制数据，也不会各自从头开始。需要重新遍历数组时，重新调用 `Iter.from(array)`。
 - `take(n)` 最多从直接上游读取 `n` 个元素，不额外预读；`take(0)` 不初始化源。`n` 必须是非负整数，否则立即抛出 `RangeError`。
@@ -56,6 +56,33 @@ source.take(1).collect() // [2]
 mapped.collect() // [30]
 mapped.collect() // []
 ```
+
+## 查找与短路判断
+
+这三个操作立即从当前位置消费，直到得到结果或源耗尽。正常短路不会关闭源；触发短路的元素已被消费，后续调用从下一个元素继续。
+
+| 操作              | 返回值      | 短路条件                 | 空源或已结束的源 |
+| ----------------- | ----------- | ------------------------ | ---------------- |
+| `find(predicate)` | `Option<T>` | 首个匹配项               | `None`           |
+| `any(predicate)`  | `boolean`   | 首次匹配，返回 `true`    | `false`          |
+| `all(predicate)`  | `boolean`   | 首次不匹配，返回 `false` | `true`           |
+
+`find` 未找到时返回 `None`，找到 `undefined` 时返回 `Some(undefined)`；支持类型守卫，并根据守卫收窄返回的 `Option` 类型。
+
+```ts
+const source = Iter.from([1, 2, 3, 4])
+source.find((value) => value > 1).unwrap() // 2
+source.any((value) => value === 3) // true
+source.all((value) => value > 0) // true，消费剩下的 4。
+source.collect() // []
+
+const number = Iter.from([1, 'two']).find(
+  (value): value is number => typeof value === 'number'
+)
+// Option<number>
+```
+
+对无限源，只有能在有限步内触发短路的条件才会返回。无限源中不存在匹配项时，`find`、`any` 可能永远无法结束；所有元素始终匹配时，`all` 也可能永远无法结束。正常短路后若要释放源资源，可显式调用 `return()`。
 
 ## 提前退出与资源清理
 
@@ -83,7 +110,7 @@ try {
 }
 ```
 
-源迭代或 `map`、`filter` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
+源迭代或 `map`、`filter`、`find`、`any`、`all` 回调抛错时，当前链会关闭源并重新抛出原始错误；清理过程中产生的错误不会覆盖原始错误。显式调用 `return()` 时的清理错误会直接抛出，链仍保持关闭。
 
 关闭依照 JavaScript 迭代协议调用源的 `return()`，不会继续读取源。资源清理应在 `finally` 中同步完成，避免在 `finally` 中继续 `yield`。
 

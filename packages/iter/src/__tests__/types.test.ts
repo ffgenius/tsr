@@ -1,3 +1,5 @@
+import type { Option } from '@tsr/core'
+
 import { expectTypeOf, test } from 'vite-plus/test'
 
 import { Iter } from '../index.js'
@@ -58,4 +60,39 @@ test('requires synchronous iterable inputs', () => {
   expectTypeOf<Iterator<number>>().not.toExtend<Input>()
   expectTypeOf<Promise<number[]>>().not.toExtend<Input>()
   expectTypeOf<AsyncIterable<number>>().not.toExtend<Input>()
+})
+
+test('infers find results and narrows them with type guards', () => {
+  const values: (number | string)[] = [1, 'two', 3]
+
+  expectTypeOf(Iter.from(values).find(() => true)).toEqualTypeOf<
+    Option<number | string>
+  >()
+  expectTypeOf(
+    Iter.from(values).find(
+      (value): value is number => typeof value === 'number'
+    )
+  ).toEqualTypeOf<Option<number>>()
+  expectTypeOf(
+    Iter.from(values).find((value) => typeof value === 'string')
+  ).toEqualTypeOf<Option<string>>()
+  expectTypeOf(Iter.from([1, 2] as const).find(() => true)).toEqualTypeOf<
+    Option<1 | 2>
+  >()
+  expectTypeOf(Iter.from([undefined]).find(() => true)).toEqualTypeOf<
+    Option<undefined>
+  >()
+  expectTypeOf(Iter.from([]).find(() => true)).toEqualTypeOf<Option<never>>()
+})
+
+test('infers predicates after adapters and returns booleans for any and all', () => {
+  const iter = Iter.from([1, 2]).map(String)
+  const found = iter.find((value) => {
+    expectTypeOf(value).toEqualTypeOf<string>()
+    return value.length > 0
+  })
+
+  expectTypeOf(found).toEqualTypeOf<Option<string>>()
+  expectTypeOf(iter.any((value) => value.length > 0)).toEqualTypeOf<boolean>()
+  expectTypeOf(iter.all((value) => value.length > 0)).toEqualTypeOf<boolean>()
 })
