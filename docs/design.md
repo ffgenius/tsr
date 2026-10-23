@@ -80,7 +80,6 @@ TypeScript 提供了强大的静态类型系统，但在日常开发中仍存在
 - `Iterator`
 - `NonZero`、`NonEmpty`
 - `Range`
-- `Cow` 风格的拥有或借用状态表达
 
 不承诺完整实现：
 
@@ -145,14 +144,14 @@ rust-ts-toolkit/
 
 ### 3.1 模块职责
 
-| 模块        | 职责                               | 优先级 |
-| ----------- | ---------------------------------- | ------ |
-| `core`      | Option、Result、基础类型与错误处理 | P0     |
-| `pattern`   | match、模式匹配、穷尽性检查        | P0     |
-| `iter`      | 惰性迭代器、Range、数据组合        | P1     |
-| `std`       | NonZero、NonEmpty、Cow 等工具类型  | P1     |
-| `effect`    | 与 Effect 生态的适配               | P2     |
-| `transform` | 可选的编译器转换和语法扩展         | P3     |
+| 模块        | 职责                                | 优先级 |
+| ----------- | ----------------------------------- | ------ |
+| `core`      | Option、Result、基础类型与错误处理  | P0     |
+| `pattern`   | match、模式匹配、穷尽性检查         | P0     |
+| `iter`      | 惰性迭代器、Range、数据组合         | P1     |
+| `std`       | NonZero、NonEmpty、Range 等工具类型 | P1     |
+| `effect`    | 与 Effect 生态的适配                | P2     |
+| `transform` | 可选的编译器转换和语法扩展          | P3     |
 
 第一阶段完成 `core` 和 `pattern`。`@tsr/pattern` 依赖 `ts-pattern` 实现匹配，并提供项目稳定的公共入口。
 
@@ -465,7 +464,9 @@ type NonEmptyString = string & {
 
 通过构造器和运行时校验创建合法值。
 
-建议扩展：
+`nonEmptyString(value)` 返回 `Result<NonEmptyString, RangeError>`；空字符串无效，但只含空白字符的字符串有效。`nonEmptyArray(value)` 返回 `Result<NonEmptyArray<T>, RangeError>`，成功时创建并冻结输入的浅拷贝。`isNonEmptyString` 和 `isNonEmptyArray` 可用于外部值的类型收窄。
+
+支持类型：
 
 - `NonEmptyString`
 - `NonEmptyArray<T>`
@@ -475,34 +476,24 @@ type NonEmptyString = string & {
 - `Bounded<T>`
 - `FiniteNumber`
 
-这些类型必须明确校验条件，并避免向使用者承诺无法由 TS 保证的安全性。
+`nonZero`、`positive`、`negative` 和 `finiteNumber` 返回相应品牌类型的 `Result`，并提供 `isNonZero`、`isPositive`、`isNegative` 和 `isFiniteNumber` 类型守卫。数值约束只接受有限数；`NonZero` 排除 `0` 和 `-0`，`Positive` / `Negative` 使用严格大于 / 小于零的条件。`bounded(value, min, max)` 使用包含端点的区间，要求有限值及有限且 `min <= max` 的上下界，并返回 `Bounded<Min, Max>`。构造失败均返回 `RangeError`。
 
 ### 8.2 Range
 
-提供明确的开区间和闭区间 API：
+通过 `range` 命名空间提供四种端点组合，返回惰性的 `Iterable<number>`：
 
 ```ts
-range(0, 10)
-rangeInclusive(0, 10)
+range.closed(0, 10)
+range.open(0, 10)
+range.closedOpen(0, 10)
+range.openClosed(0, 10)
 ```
 
-应明确上下界、步长、负步长和非法输入的行为。
+首版仅接受安全整数端点，并按正向整数递增；起点大于终点时返回空序列。非法端点在构造时抛出 `RangeError`。范围可重复迭代，也可传给 `Iter.from`；步长和负向范围暂不支持。
 
-### 8.3 Cow
+### 8.3 不纳入范围
 
-模拟 Rust `Cow` 的拥有或借用状态：
-
-```ts
-type Cow<T> = { kind: 'borrowed'; value: T } | { kind: 'owned'; value: T }
-```
-
-这只是状态模型，不等于 Rust 的生命周期、借用检查或零拷贝保证。
-
-### 8.4 资源管理
-
-优先使用 TypeScript / JavaScript 原生的 `Disposable`、`Symbol.dispose`、`AsyncDisposable` 和 `Symbol.asyncDispose` 能力。
-
-不自行模拟 Rust 的完整 RAII 或所有权检查。
+`Cow` 不纳入 `@tsr/std`：JavaScript / TypeScript 没有 Rust 的借用检查与生命周期语义，仅封装 `owned` / `borrowed` 标签不能提供相同保证。资源管理也不增加自定义 API，直接使用 TypeScript / JavaScript 原生的 `Disposable`、`Symbol.dispose`、`AsyncDisposable` 和 `Symbol.asyncDispose` 能力。
 
 ## 9. Effect 适配层
 
@@ -660,7 +651,6 @@ import { Iter } from '@tsr/iter'
 - Range。
 - NonEmpty。
 - NonZero。
-- Cow 风格抽象。
 
 验收标准：惰性行为、消费语义和运行时成本有明确测试。
 

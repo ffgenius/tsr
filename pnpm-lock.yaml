@@ -81,6 +81,12 @@ importers:
         specifier: catalog:runtime
         version: 5.9.2
 
+  packages/std:
+    dependencies:
+      '@tsr/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/tools: {}
 
   playground:
