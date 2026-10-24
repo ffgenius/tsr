@@ -46,9 +46,11 @@
     "bumpp": "catalog:tooling",
     "tsx": "catalog:tooling",
     "typescript": "catalog:tooling",
+    "vite": "^8.0.10",
     "vite-plus": "catalog:tooling",
     "vitepress": "catalog:tooling",
-    "vitest": "catalog:testing"
+    "vitest": "catalog:testing",
+    "void": "1.2.1"
   },
   "lint-staged": {
     "*": [

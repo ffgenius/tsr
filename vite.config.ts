@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite-plus'
+import { voidPlugin } from 'void'
 
 import tsdownConfig from './tsdown.config.ts'
 
 export default defineConfig({
+  plugins: [voidPlugin()],
   pack: tsdownConfig,
   staged: {
     '*': 'vp check --fix',
