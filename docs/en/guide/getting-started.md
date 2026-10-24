@@ -1,47 +1,37 @@
 # Getting Started
 
-## Requirements
-
-- Node.js `22.18.0` or later
-- pnpm `10.34.1`
-
-## Run Locally
-
-Install dependencies and start the documentation site from the repository root:
-
-```sh
-pnpm install
-pnpm run docs:dev
-```
-
-Build and preview the production site:
-
-```sh
-pnpm run docs:build
-pnpm run docs:preview
-```
-
-Run package tests and builds:
-
-```sh
-pnpm test
-pnpm build
-```
-
-## Packages
-
-| Package         | Entry point     | Contents                                                                                            |
-| --------------- | --------------- | --------------------------------------------------------------------------------------------------- |
-| `@ffgenius/tsr` | `@ffgenius/tsr` | `Option`, `Result`, pattern matching, lazy iterators, non-empty values, numeric constraints, ranges |
-
-Install the package and import the APIs you need from its single entry point:
+## Install
 
 ```sh
 npm install @ffgenius/tsr
 ```
 
+## Use
+
 ```ts
-import { Iter, Option, Result, match, range } from '@ffgenius/tsr'
+import {
+  Iter,
+  Ok,
+  Option,
+  caseOf,
+  match,
+  otherwise,
+  range,
+} from '@ffgenius/tsr'
+
+const name = Option.fromNullable<string>(null).unwrapOr('Guest')
+const total = Iter.from(range.closed(1, 3))
+  .map((value) => value * 2)
+  .sum()
+const doubled = Ok(total)
+  .map((value) => value * 2)
+  .unwrapOr(0)
+
+const message = match(
+  { type: 'success', value: doubled } as const,
+  caseOf({ type: 'success' }, ({ value }) => `Total: ${value}`),
+  otherwise(() => 'No result')
+)
 ```
 
-Module guides pair the TypeScript APIs with common Rust idioms. The examples describe conceptual correspondences; their APIs and type rules are not identical.
+`Option` and `Result` represent optional and recoverable values. `Iter` provides lazy iteration, while `match` handles values by pattern. See the module guides for individual APIs.

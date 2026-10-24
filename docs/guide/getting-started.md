@@ -1,47 +1,37 @@
 # 快速开始
 
-## 环境要求
-
-- Node.js `22.18.0` 或更高版本
-- pnpm `10.34.1`
-
-## 本地运行
-
-在仓库根目录安装依赖并启动文档站点：
-
-```sh
-pnpm install
-pnpm run docs:dev
-```
-
-构建和预览生产站点：
-
-```sh
-pnpm run docs:build
-pnpm run docs:preview
-```
-
-运行包测试和构建：
-
-```sh
-pnpm test
-pnpm build
-```
-
-## 包概览
-
-| 包              | 入口            | 主要内容                                                         |
-| --------------- | --------------- | ---------------------------------------------------------------- |
-| `@ffgenius/tsr` | `@ffgenius/tsr` | `Option`、`Result`、模式匹配、惰性迭代器、非空值、数值约束、范围 |
-
-安装后可以从统一入口按需导入：
+## 安装
 
 ```sh
 npm install @ffgenius/tsr
 ```
 
+## 使用
+
 ```ts
-import { Iter, Option, Result, match, range } from '@ffgenius/tsr'
+import {
+  Iter,
+  Ok,
+  Option,
+  caseOf,
+  match,
+  otherwise,
+  range,
+} from '@ffgenius/tsr'
+
+const name = Option.fromNullable<string>(null).unwrapOr('Guest')
+const total = Iter.from(range.closed(1, 3))
+  .map((value) => value * 2)
+  .sum()
+const doubled = Ok(total)
+  .map((value) => value * 2)
+  .unwrapOr(0)
+
+const message = match(
+  { type: 'success', value: doubled } as const,
+  caseOf({ type: 'success' }, ({ value }) => `Total: ${value}`),
+  otherwise(() => 'No result')
+)
 ```
 
-各模块的 TypeScript 用法和对应 Rust 惯用写法见模块指南。Rust 示例展示概念上的对应关系；TSR 仓库本身没有 Rust 实现，两个生态的 API 和类型规则并不完全相同。
+`Option` / `Result` 用于表达可选值和可恢复结果；`Iter` 提供惰性迭代操作；`match` 按模式处理不同分支。需要单独查看某项 API 时，参见对应模块指南。

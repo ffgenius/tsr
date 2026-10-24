@@ -2,39 +2,37 @@
 
 Rust-inspired utility toolkit for TypeScript. The `@ffgenius/tsr` package exports `Option`, `Result`, pattern matching, lazy iterators, and type-safe standard utilities. It does not contain a Rust implementation.
 
-TSR 是一个受 Rust 启发的 TypeScript 工具包，`@ffgenius/tsr` 导出 `Option`、`Result`、模式匹配、惰性迭代器和类型安全工具。仓库暂不包含 Rust 实现。
-
-## Install
+## Usage
 
 ```sh
 npm install @ffgenius/tsr
 ```
 
 ```ts
-import { Iter, Option, Result, match, range } from '@ffgenius/tsr'
+import {
+  Iter,
+  Ok,
+  Option,
+  caseOf,
+  match,
+  otherwise,
+  range,
+} from '@ffgenius/tsr'
+
+const name = Option.fromNullable<string>(null).unwrapOr('Guest')
+const total = Iter.from(range.closed(1, 3))
+  .map((value) => value * 2)
+  .sum()
+const doubled = Ok(total)
+  .map((value) => value * 2)
+  .unwrapOr(0)
+
+const message = match(
+  { type: 'success', value: doubled } as const,
+  caseOf({ type: 'success' }, ({ value }) => `Total: ${value}`),
+  otherwise(() => 'No result')
+)
 ```
-
-## Documentation
-
-The documentation is bilingual and includes switchable TypeScript/Rust examples.
-
-```sh
-pnpm install
-pnpm run docs:dev
-```
-
-Use `pnpm run docs:build` to build the site and `pnpm run docs:preview` to preview the production build.
-
-## Development
-
-```sh
-pnpm test
-pnpm build
-```
-
-## Release
-
-Run `pnpm release` to check, test, and build the package. `bumpp` then prompts for the next version, commits and pushes the version tag; the script publishes the package to npm afterward.
 
 ## License
 
