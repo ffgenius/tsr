@@ -34,6 +34,7 @@
     "lint": "vp lint .",
     "lint:fix": "vp lint . --fix",
     "prepare": "vp config",
+    "release": "vp check && vp test && pnpm build && bumpp && pnpm publish",
     "test": "vp test",
     "typecheck": "tsc --noEmit"
   },
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:types",
+    "bumpp": "catalog:tooling",
     "tsx": "catalog:tooling",
     "typescript": "catalog:tooling",
     "vite-plus": "catalog:tooling",

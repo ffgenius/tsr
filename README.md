@@ -32,6 +32,10 @@ pnpm test
 pnpm build
 ```
 
+## Release
+
+Run `pnpm release` to check, test, and build the package. `bumpp` then prompts for the next version, commits and pushes the version tag; the script publishes the package to npm afterward.
+
 ## License
 
 [MIT](./LICENSE)

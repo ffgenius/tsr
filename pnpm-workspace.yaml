@@ -1,5 +1,6 @@
 catalogs:
   tooling:
+    bumpp: ^12.3.0
     tsx: ^4.22.3
     typescript: ^6.0.3
     vite: npm:@voidzero-dev/vite-plus-core@latest
