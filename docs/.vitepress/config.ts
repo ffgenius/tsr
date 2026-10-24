@@ -17,7 +17,6 @@ const zhSidebar = [
       { text: '类型安全工具', link: '/guide/std' },
     ],
   },
-  { text: '设计文档', link: '/design' },
 ]
 
 const enSidebar = [
@@ -69,7 +68,11 @@ export default defineConfig({
     },
   },
   themeConfig: {
-    logo: '/tsr-logo.svg',
+    logo: {
+      light: '/tsr-logo-dark.png',
+      dark: '/tsr-logo.png',
+      alt: 'TSR logo',
+    },
     search: { provider: 'local' },
   },
 })
