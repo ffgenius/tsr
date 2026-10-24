@@ -13,6 +13,9 @@
     "build": "turbo run build",
     "check": "vp check",
     "dev": "turbo run dev",
+    "docs:build": "vitepress build docs",
+    "docs:dev": "vitepress dev docs",
+    "docs:preview": "vitepress preview docs",
     "format": "vp fmt .",
     "lint": "vp lint .",
     "lint:fix": "vp lint . --fix",
@@ -26,6 +29,7 @@
     "turbo": "catalog:tooling",
     "typescript": "catalog:tooling",
     "vite-plus": "catalog:tooling",
+    "vitepress": "catalog:tooling",
     "vitest": "catalog:testing"
   },
   "lint-staged": {

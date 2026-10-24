@@ -416,31 +416,9 @@ const selected = Iter.from(values)
 
 ### 7.2 基础 API
 
-当前已实现 `Iter.from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip`、`find`、`position`、`any`、`all`、`fold`、`reduce`、`sum`、`product`、`partition`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find`、`position` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。`sum` 和 `product` 仅接受 `number` 元素，空源分别返回 `0` 和 `1`。输入类型、共享消费进度和资源清理规则见 [@tsr/iter 使用说明](../packages/iter/README.md)。
+当前已实现 `Iter.from`、`map`、`flatMap`、`flatten`、`filter`、`filterMap`、`inspect`、`take`、`skip`、`stepBy`、`enumerate`、`chain`、`zip`、`find`、`position`、`any`、`all`、`fold`、`reduce`、`sum`、`product`、`partition`、`collect`，以及标准迭代协议的 `next`、`return` 和 `[Symbol.iterator]`。`find`、`position` 和 `reduce` 返回 `@tsr/core` 的 `Option`，`filterMap` 的回调也使用该类型。`sum` 和 `product` 仅接受 `number` 元素，空源分别返回 `0` 和 `1`。输入类型、共享消费进度和资源清理规则见 [@tsr/iter 使用说明](./guide/iter)。
 
-以下为目标 API 列表，尚未全部实现：
-
-- `map`
-- `filter`
-- `filterMap`
-- `flatMap`
-- `flatten`
-- `enumerate`
-- `take`
-- `skip`
-- `stepBy`
-- `chain`
-- `zip`
-- `inspect`
-- `fold`
-- `reduce`
-- `sum`
-- `product`
-- `find`
-- `position`
-- `any`
-- `all`
-- `collect`
+上文列出的适配器与终端操作均已有实现。API 和边界语义以 `packages/iter/src/index.ts`、包说明及测试为准。
 
 ### 7.3 设计约束
 
@@ -633,21 +611,21 @@ import { Iter } from '@tsr/iter'
 
 验收标准：类型推导稳定、边界语义明确、核心无 Effect 强依赖。
 
-### Phase 2：模式匹配
+### Phase 2：模式匹配（基础版已实现）
 
 交付：
 
 - match 适配。
-- 穷尽性检查。
+- 运行时非穷尽错误和链式匹配。
 - 按实际需求实现具体的类型转换函数。
 
 验收标准：公共 API 一致，不出现重复的 Result 体系。
 
-### Phase 3：迭代器与类型工具
+### Phase 3：迭代器与类型工具（已实现）
 
 交付：
 
-- 惰性 Iterator。
+- 惰性同步 Iterator。
 - Range。
 - NonEmpty。
 - NonZero。

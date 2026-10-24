@@ -1,49 +1,34 @@
-# Start Template
+# TSR
 
-> A quick start template based on a frontend Monorepo architecture. 🚀
+Rust-inspired utility packages for TypeScript. The repository currently contains TypeScript implementations of `Option`, `Result`, pattern matching, lazy iterators, and type-safe standard utilities. It does not contain a Rust implementation.
 
-This is a modern and lightweight monorepo starter template built with **pnpm workspaces** and **Turborepo**. It comes pre-configured with a hyper-fast toolchain for TypeScript development.
+TSR 是一组受 Rust 启发的 TypeScript 工具包，目前包含 `Option`、`Result`、模式匹配、惰性迭代器和类型安全工具。仓库暂不包含 Rust 实现。
 
-## 📦 Features
+## Packages
 
-- **Monorepo (pnpm workspaces)**: Manage multiple packages and applications in a single repository.
-- **Task Orchestration (Turborepo)**: Fast and incremental build system with caching.
-- **Hyper-fast Toolchain**:
-  - `oxlint` for lightning-fast code linting (replacing traditional ESLint).
-  - `oxfmt` for extremely fast code formatting.
-- **TypeScript**: Configured with modern best practices (`esnext`, `bundler` resolution, `isolatedDeclarations` for fast dts generation).
-- **TypeScript Execution**: `tsx` for running standard TypeScript scripts out of the box.
-- **Bundling (`@template/tools` example)**: Dual-format packing (ESM & CJS) using `tsdown`.
+- `@tsr/core`: `Option` and `Result`
+- `@tsr/pattern`: pattern matching backed by `ts-pattern`
+- `@tsr/iter`: lazy synchronous iterators
+- `@tsr/std`: non-empty values, numeric constraints, and ranges
 
-## 🚀 Quick Start via `degit`
+## Documentation
 
-You can quickly scaffold a new project using this template with `npx degit`.
+The documentation is bilingual and includes switchable TypeScript/Rust examples.
 
-```bash
-
-# Create a new project named "my-project" using this template
-
-npx degit@latest https://github.com/ffgenius/template-starter.git my-project
-
-# Navigate to the new project
-
-cd my-project
-
-# Install dependencies (pnpm is recommended and required by the workspace)
-
+```sh
 pnpm install
+pnpm run docs:dev
 ```
 
-## 🛠️ Available Scripts
+Use `pnpm run docs:build` to build the site and `pnpm run docs:preview` to preview the production build.
 
-From the root of the repository, you can run the following commands:
+## Development
 
-- `pnpm run dev`: Starts the development environments across all packages in parallel.
-- `pnpm run build`: Builds all packages utilizing Turborepo's caching.
-- `pnpm run lint`: Runs `oxlint` to check for code issues instantly.
-- `pnpm run lint:fix`: Auto-fixes standard code issues using `oxlint`.
-- `pnpm run format`: Formats code using `oxfmt`.
+```sh
+pnpm test
+pnpm build
+```
 
-## 📄 License
+## License
 
 [MIT](./LICENSE)

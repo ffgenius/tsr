@@ -8,6 +8,7 @@ catalogs:
     typescript: ^6.0.3
     vite: npm:@voidzero-dev/vite-plus-core@latest
     vite-plus: latest
+    vitepress: ^1.6.4
   testing:
     vitest: npm:@voidzero-dev/vite-plus-test@latest
   runtime:
@@ -21,6 +22,7 @@ catalogs:
     '@types/node': ^26.0.1
 overrides:
   vite: 'catalog:tooling'
+  'vitepress>vite': ^5.4.14
   vitest: 'catalog:testing'
 peerDependencyRules:
   allowAny:
