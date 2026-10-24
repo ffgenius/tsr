@@ -1,5 +1,4 @@
 {
-  "extends": "./.void/tsconfig.json",
   "compilerOptions": {
     "target": "esnext",
     "lib": ["es2023"],
@@ -7,7 +6,7 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "types": ["node", "void/env"],
+    "types": ["node"],
     "strict": true,
     "noUnusedLocals": true,
     "declaration": true,
