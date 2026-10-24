@@ -1,6 +1,6 @@
 # Pattern Matching
 
-`@tsr/pattern` exports its own object-style branch API and re-exports `P`, `isMatching`, and `matchChain` from [`ts-pattern`](https://github.com/gvergnaud/ts-pattern). The source entry point also exports `MatchCase`, `OtherwiseCase`, and `Pattern<T>` types.
+`@ffgenius/tsr` exports its own object-style branch API and re-exports `P`, `isMatching`, and `matchChain` from [`ts-pattern`](https://github.com/gvergnaud/ts-pattern). The source entry point also exports `MatchCase`, `OtherwiseCase`, and `Pattern<T>` types.
 
 ## TSR examples
 
@@ -9,8 +9,8 @@
 ::: code-group
 
 ```ts [TypeScript]
-import { caseOf, match, otherwise, P } from '@tsr/pattern'
-import type { Pattern } from '@tsr/pattern'
+import { caseOf, match, otherwise, P } from '@ffgenius/tsr'
+import type { Pattern } from '@ffgenius/tsr'
 
 type Reply = { type: 'ok'; value: string } | { type: 'error'; message: string }
 const pattern: Pattern<Reply> = { type: 'ok', value: P.string }
@@ -43,7 +43,7 @@ At most one `otherwise` branch is allowed, and it must be last. A duplicate or a
 ::: code-group
 
 ```ts [TypeScript]
-import { isMatching, matchChain, P } from '@tsr/pattern'
+import { isMatching, matchChain, P } from '@ffgenius/tsr'
 
 const isNamed = isMatching({ name: P.string })
 if (isNamed({ name: 'Ada' })) {

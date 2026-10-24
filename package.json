@@ -1,18 +1,32 @@
 {
-  "name": "start-template",
-  "version": "1.0.0",
-  "description": "Quick start template based on monorepo",
+  "name": "@ffgenius/tsr",
+  "version": "0.0.1",
+  "description": "TSR is a set of TypeScript tooling inspired by Rust",
   "keywords": [
-    "monorepo",
-    "template"
+    "rust",
+    "typescript"
   ],
   "license": "MIT",
   "author": "Bin",
+  "files": [
+    "dist"
+  ],
   "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "turbo run build",
+    "build": "vp pack",
     "check": "vp check",
-    "dev": "turbo run dev",
+    "dev": "vp pack -w",
     "docs:build": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
@@ -20,13 +34,15 @@
     "lint": "vp lint .",
     "lint:fix": "vp lint . --fix",
     "prepare": "vp config",
-    "test": "turbo run test",
+    "test": "vp test",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ts-pattern": "catalog:runtime"
   },
   "devDependencies": {
     "@types/node": "catalog:types",
     "tsx": "catalog:tooling",
-    "turbo": "catalog:tooling",
     "typescript": "catalog:tooling",
     "vite-plus": "catalog:tooling",
     "vitepress": "catalog:tooling",

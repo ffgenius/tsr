@@ -1,6 +1,6 @@
-import { Option } from '@tsr/core'
 import { expectTypeOf, test } from 'vite-plus/test'
 
+import { Option } from '../../core/index.js'
 import { Iter } from '../index.js'
 
 test('infers mapped and filtered value types', () => {

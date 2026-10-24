@@ -1,11 +1,11 @@
 # Lazy Iterators
 
-`@tsr/iter` exports `Iter<T>`, which implements the synchronous `IterableIterator<T>` protocol. It accepts any synchronous `Iterable<T>`, but not plain objects, Promises, async iterables, or iterators that only implement `next()`. The constructor is private; create instances with `Iter.from`.
+`@ffgenius/tsr` exports `Iter<T>`, which implements the synchronous `IterableIterator<T>` protocol. It accepts any synchronous `Iterable<T>`, but not plain objects, Promises, async iterables, or iterators that only implement `next()`. The constructor is private; create instances with `Iter.from`.
 
 ::: code-group
 
 ```ts [TypeScript]
-import { Iter } from '@tsr/iter'
+import { Iter } from '@ffgenius/tsr'
 
 const values = Iter.from([1, -2, 3, 4, 5])
   .filter((value) => value > 0)
@@ -29,8 +29,8 @@ let values: Vec<_> = [1, -2, 3, 4, 5]
 ::: code-group
 
 ```ts [TypeScript]
-import { None, Some } from '@tsr/core'
-import { Iter } from '@tsr/iter'
+import { None, Some } from '@ffgenius/tsr'
+import { Iter } from '@ffgenius/tsr'
 
 const expanded = Iter.from([1, 2])
   .flatMap((value) => [value, value + 10])

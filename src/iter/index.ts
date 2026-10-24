@@ -1,4 +1,4 @@
-import { Option } from '@tsr/core'
+import { Option } from '../core/index.js'
 
 type IterResult<T> = IteratorResult<T, undefined>
 

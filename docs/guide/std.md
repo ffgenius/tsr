@@ -1,6 +1,6 @@
 # 类型安全工具
 
-`@tsr/std` 导出非空值、数值约束和整数范围。构造器返回 `@tsr/core` 的 `Result`，各品牌类型可从包入口直接导入。
+`@ffgenius/tsr` 导出非空值、数值约束和整数范围。构造器返回 `@ffgenius/tsr` 的 `Result`，各品牌类型可从包入口直接导入。
 
 ## 非空值
 
@@ -12,7 +12,7 @@ import {
   isNonEmptyString,
   nonEmptyArray,
   nonEmptyString,
-} from '@tsr/std'
+} from '@ffgenius/tsr'
 
 const name = nonEmptyString('Ada')
 const names = nonEmptyArray(['Ada', 'Lin'])
@@ -32,7 +32,7 @@ let valid_name = name && !names.is_empty();
 ::: code-group
 
 ```ts [TypeScript]
-import { bounded, finiteNumber, isPositive } from '@tsr/std'
+import { bounded, finiteNumber, isPositive } from '@ffgenius/tsr'
 
 const finite = finiteNumber(3.5)
 const unit = bounded(0.5, 0, 1)
@@ -58,7 +58,7 @@ let in_range = (0.0_f64..=1.0).contains(&0.5);
 ::: code-group
 
 ```ts [TypeScript]
-import { range } from '@tsr/std'
+import { range } from '@ffgenius/tsr'
 ;[...range.closed(1, 3)] // [1, 2, 3]
 ```
 

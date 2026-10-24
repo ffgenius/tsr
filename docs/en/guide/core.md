@@ -1,6 +1,6 @@
 # Option and Result
 
-`@tsr/core` exports `Option`, `Result`, the convenience constructors `Some`, `None`, `Ok`, and `Err`, plus their unwrap error classes. These names are the package's source types: import the classes as values or use `import type` when only a type is needed.
+`@ffgenius/tsr` exports `Option`, `Result`, the convenience constructors `Some`, `None`, `Ok`, and `Err`, plus their unwrap error classes. These names are the package's source types: import the classes as values or use `import type` when only a type is needed.
 
 ## Option
 
@@ -11,7 +11,7 @@
 ::: code-group
 
 ```ts [TypeScript]
-import { Option, Some } from '@tsr/core'
+import { Option, Some } from '@ffgenius/tsr'
 
 const name = Some(' Ada ')
   .map((value) => value.trim())
@@ -35,7 +35,7 @@ let as_result = name.ok_or("missing");
 ::: code-group
 
 ```ts [TypeScript]
-import { Option } from '@tsr/core'
+import { Option } from '@ffgenius/tsr'
 
 const name = Option.fromNullable<string>(null)
 const label = name.match({ some: (value) => value, none: () => 'Guest' })
@@ -58,7 +58,7 @@ let label = name.unwrap_or("Guest");
 ::: code-group
 
 ```ts [TypeScript]
-import { Err, Ok, Option } from '@tsr/core'
+import { Err, Ok, Option } from '@ffgenius/tsr'
 
 const parsed = Ok(41).map((value) => value + 1)
 const recovered = Err<RangeError, number>(new RangeError('invalid')).orElse(
@@ -80,7 +80,7 @@ let transposed: Option<Result<i32, &str>> = Ok(Some(7)).transpose();
 ::: code-group
 
 ```ts [TypeScript]
-import { Err } from '@tsr/core'
+import { Err } from '@ffgenius/tsr'
 
 const failure = Err<RangeError, number>(new RangeError('invalid'))
 const fallback = failure.unwrapOrElse((error) => error.message.length)

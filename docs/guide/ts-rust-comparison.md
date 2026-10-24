@@ -2,21 +2,21 @@
 
 TSR 将一些 Rust 常见概念表达为 TypeScript 包 API。下表说明概念对应关系；具体差异以各模块文档为准。
 
-| 概念       | TSR / TypeScript                    | Rust 常见写法             |
-| ---------- | ----------------------------------- | ------------------------- |
-| 可选值     | `Option<T>`                         | `Option<T>`               |
-| 成功或失败 | `Result<T, E>`                      | `Result<T, E>`            |
-| 分支匹配   | `@tsr/pattern` 的 `match`、`caseOf` | `match` 表达式            |
-| 迭代组合   | `Iter<T>`                           | `Iterator` trait          |
-| 非零数值   | 品牌类型与运行时构造器              | `NonZeroU32` 等标准库类型 |
-| 整数范围   | `range` 工厂函数                    | `a..b`、`a..=b`           |
+| 概念       | TSR / TypeScript                     | Rust 常见写法             |
+| ---------- | ------------------------------------ | ------------------------- |
+| 可选值     | `Option<T>`                          | `Option<T>`               |
+| 成功或失败 | `Result<T, E>`                       | `Result<T, E>`            |
+| 分支匹配   | `@ffgenius/tsr` 的 `match`、`caseOf` | `match` 表达式            |
+| 迭代组合   | `Iter<T>`                            | `Iterator` trait          |
+| 非零数值   | 品牌类型与运行时构造器               | `NonZeroU32` 等标准库类型 |
+| 整数范围   | `range` 工厂函数                     | `a..b`、`a..=b`           |
 
 ## Option
 
 ::: code-group
 
 ```ts [TypeScript]
-import { Option } from '@tsr/core'
+import { Option } from '@ffgenius/tsr'
 
 const greeting = Option.fromNullable('Ada').map((name) => `Hello, ${name}`)
 ```
@@ -32,7 +32,7 @@ let greeting = Some("Ada").map(|name| format!("Hello, {name}"));
 ::: code-group
 
 ```ts [TypeScript]
-import { Result } from '@tsr/core'
+import { Result } from '@ffgenius/tsr'
 
 const count = Result.ok('42')
   .map(Number)
@@ -65,7 +65,7 @@ TypeScript 通过 `caseOf` 声明各分支，Rust 使用语言内建的 `match`�
 ::: code-group
 
 ```ts [TypeScript]
-import { caseOf, match, otherwise } from '@tsr/pattern'
+import { caseOf, match, otherwise } from '@ffgenius/tsr'
 
 type Status = 'ready' | 'busy'
 const status: Status = 'busy'
@@ -98,7 +98,7 @@ let label = match status {
 ::: code-group
 
 ```ts [TypeScript]
-import { Iter } from '@tsr/iter'
+import { Iter } from '@ffgenius/tsr'
 
 const total = Iter.from([1, 2, 3, 4])
   .filter((value) => value % 2 === 0)

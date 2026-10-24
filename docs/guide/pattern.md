@@ -1,6 +1,6 @@
 # 模式匹配
 
-`@tsr/pattern` 导出自有的对象式分支 API，并将 `P`、`isMatching` 和 `matchChain` 转发自 [`ts-pattern`](https://github.com/gvergnaud/ts-pattern)。自有类型 `MatchCase`、`OtherwiseCase`、`Pattern<T>` 也直接从源码入口导出。
+`@ffgenius/tsr` 导出自有的对象式分支 API，并将 `P`、`isMatching` 和 `matchChain` 转发自 [`ts-pattern`](https://github.com/gvergnaud/ts-pattern)。自有类型 `MatchCase`、`OtherwiseCase`、`Pattern<T>` 也直接从源码入口导出。
 
 ## 自有 API 示例
 
@@ -9,8 +9,8 @@
 ::: code-group
 
 ```ts [TypeScript]
-import { caseOf, match, otherwise, P } from '@tsr/pattern'
-import type { Pattern } from '@tsr/pattern'
+import { caseOf, match, otherwise, P } from '@ffgenius/tsr'
+import type { Pattern } from '@ffgenius/tsr'
 
 type Reply = { type: 'ok'; value: string } | { type: 'error'; message: string }
 const pattern: Pattern<Reply> = { type: 'ok', value: P.string }
@@ -43,7 +43,7 @@ let message = match reply {
 ::: code-group
 
 ```ts [TypeScript]
-import { isMatching, matchChain, P } from '@tsr/pattern'
+import { isMatching, matchChain, P } from '@ffgenius/tsr'
 
 const isNamed = isMatching({ name: P.string })
 if (isNamed({ name: 'Ada' })) {

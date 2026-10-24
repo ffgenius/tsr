@@ -1,4 +1,4 @@
-import { Result } from '@tsr/core'
+import { Result } from '../core/index.js'
 
 declare const nonEmptyStringBrand: unique symbol
 declare const nonEmptyArrayBrand: unique symbol

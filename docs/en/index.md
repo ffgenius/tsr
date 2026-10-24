@@ -20,17 +20,17 @@ hero:
       link: /en/guide/ts-rust-comparison
 features:
   - title: Core types
-    details: '@tsr/core uses Option and Result to model optional values, recoverable errors, and error handling flows.'
+    details: '@ffgenius/tsr uses Option and Result to model optional values, recoverable errors, and error handling flows.'
     icon: 🧩
   - title: Pattern matching
-    details: '@tsr/pattern provides a stable entry point backed by ts-pattern for handling union types with structured branches.'
+    details: '@ffgenius/tsr provides a stable entry point backed by ts-pattern for handling union types with structured branches.'
     icon: 🔀
   - title: Lazy iterators
-    details: '@tsr/iter composes lazy data transformations and lets terminal operations decide when to consume values.'
+    details: '@ffgenius/tsr composes lazy data transformations and lets terminal operations decide when to consume values.'
     icon: ♻️
   - title: Type-safe utilities
-    details: '@tsr/std provides non-empty values, numeric constraints, and repeatable integer ranges.'
+    details: '@ffgenius/tsr provides non-empty values, numeric constraints, and repeatable integer ranges.'
     icon: 🛡️
 ---
 
-> This repository contains TypeScript packages only. Rust examples are included for syntax and standard-library comparison.
+> The `@ffgenius/tsr` package contains TypeScript implementations only. Rust examples are included for syntax and standard-library comparison.

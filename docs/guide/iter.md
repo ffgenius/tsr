@@ -1,11 +1,11 @@
 # 惰性迭代器
 
-`@tsr/iter` 导出 `Iter<T>`。它实现同步 `IterableIterator<T>`，接受任何同步 `Iterable<T>`，不接受普通对象、Promise、异步可迭代对象或只有 `next()` 的迭代器。`Iter` 构造器为私有，使用 `Iter.from` 创建。
+`@ffgenius/tsr` 导出 `Iter<T>`。它实现同步 `IterableIterator<T>`，接受任何同步 `Iterable<T>`，不接受普通对象、Promise、异步可迭代对象或只有 `next()` 的迭代器。`Iter` 构造器为私有，使用 `Iter.from` 创建。
 
 ::: code-group
 
 ```ts [TypeScript]
-import { Iter } from '@tsr/iter'
+import { Iter } from '@ffgenius/tsr'
 
 const values = Iter.from([1, -2, 3, 4, 5])
   .filter((value) => value > 0)
@@ -29,8 +29,8 @@ let values: Vec<_> = [1, -2, 3, 4, 5]
 ::: code-group
 
 ```ts [TypeScript]
-import { None, Some } from '@tsr/core'
-import { Iter } from '@tsr/iter'
+import { None, Some } from '@ffgenius/tsr'
+import { Iter } from '@ffgenius/tsr'
 
 const expanded = Iter.from([1, 2])
   .flatMap((value) => [value, value + 10])

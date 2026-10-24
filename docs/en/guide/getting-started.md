@@ -30,11 +30,18 @@ pnpm build
 
 ## Packages
 
-| Package        | Entry point    | Contents                                          |
-| -------------- | -------------- | ------------------------------------------------- |
-| `@tsr/core`    | `@tsr/core`    | `Option`, `Result`                                |
-| `@tsr/pattern` | `@tsr/pattern` | `match`, `caseOf`, `otherwise`, `matchChain`, `P` |
-| `@tsr/iter`    | `@tsr/iter`    | Lazy synchronous iterators                        |
-| `@tsr/std`     | `@tsr/std`     | Non-empty values, numeric constraints, ranges     |
+| Package         | Entry point     | Contents                                                                                            |
+| --------------- | --------------- | --------------------------------------------------------------------------------------------------- |
+| `@ffgenius/tsr` | `@ffgenius/tsr` | `Option`, `Result`, pattern matching, lazy iterators, non-empty values, numeric constraints, ranges |
 
-Module guides pair the TypeScript package APIs with common Rust idioms. The examples describe conceptual correspondences; their APIs and type rules are not identical.
+Install the package and import the APIs you need from its single entry point:
+
+```sh
+npm install @ffgenius/tsr
+```
+
+```ts
+import { Iter, Option, Result, match, range } from '@ffgenius/tsr'
+```
+
+Module guides pair the TypeScript APIs with common Rust idioms. The examples describe conceptual correspondences; their APIs and type rules are not identical.

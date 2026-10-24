@@ -1,15 +1,18 @@
 # TSR
 
-Rust-inspired utility packages for TypeScript. The repository currently contains TypeScript implementations of `Option`, `Result`, pattern matching, lazy iterators, and type-safe standard utilities. It does not contain a Rust implementation.
+Rust-inspired utility toolkit for TypeScript. The `@ffgenius/tsr` package exports `Option`, `Result`, pattern matching, lazy iterators, and type-safe standard utilities. It does not contain a Rust implementation.
 
-TSR 是一组受 Rust 启发的 TypeScript 工具包，目前包含 `Option`、`Result`、模式匹配、惰性迭代器和类型安全工具。仓库暂不包含 Rust 实现。
+TSR 是一个受 Rust 启发的 TypeScript 工具包，`@ffgenius/tsr` 导出 `Option`、`Result`、模式匹配、惰性迭代器和类型安全工具。仓库暂不包含 Rust 实现。
 
-## Packages
+## Install
 
-- `@tsr/core`: `Option` and `Result`
-- `@tsr/pattern`: pattern matching backed by `ts-pattern`
-- `@tsr/iter`: lazy synchronous iterators
-- `@tsr/std`: non-empty values, numeric constraints, and ranges
+```sh
+npm install @ffgenius/tsr
+```
+
+```ts
+import { Iter, Option, Result, match, range } from '@ffgenius/tsr'
+```
 
 ## Documentation
 

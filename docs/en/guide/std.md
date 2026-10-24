@@ -1,6 +1,6 @@
 # Type-safe Utilities
 
-`@tsr/std` exports non-empty values, numeric constraints, and integer ranges. Constructors return `Result` from `@tsr/core`; branded types can be imported directly from the package entry point.
+`@ffgenius/tsr` exports non-empty values, numeric constraints, and integer ranges. Constructors return `Result` from `@ffgenius/tsr`; branded types can be imported directly from the package entry point.
 
 ## Non-empty Values
 
@@ -12,7 +12,7 @@ import {
   isNonEmptyString,
   nonEmptyArray,
   nonEmptyString,
-} from '@tsr/std'
+} from '@ffgenius/tsr'
 
 const name = nonEmptyString('Ada')
 const names = nonEmptyArray(['Ada', 'Lin'])
@@ -32,7 +32,7 @@ let valid = name && !names.is_empty();
 ::: code-group
 
 ```ts [TypeScript]
-import { bounded, finiteNumber, isPositive } from '@tsr/std'
+import { bounded, finiteNumber, isPositive } from '@ffgenius/tsr'
 
 const finite = finiteNumber(3.5)
 const unit = bounded(0.5, 0, 1)
@@ -58,7 +58,7 @@ The `unique symbol` names in brackets are private brand markers in the package d
 ::: code-group
 
 ```ts [TypeScript]
-import { range } from '@tsr/std'
+import { range } from '@ffgenius/tsr'
 ;[...range.closed(1, 3)] // [1, 2, 3]
 ```
 

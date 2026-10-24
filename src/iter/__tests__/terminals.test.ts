@@ -1,6 +1,6 @@
-import { Option } from '@tsr/core'
 import { describe, expect, it } from 'vite-plus/test'
 
+import { Option } from '../../core/index.js'
 import { Iter } from '../index.js'
 
 describe('short-circuit operations', () => {

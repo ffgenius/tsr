@@ -1,22 +1,22 @@
 # TypeScript and Rust Comparison
 
-TSR expresses several Rust-inspired concepts through TypeScript package APIs. The table maps concepts; see each module guide for details and differences.
+TSR expresses several Rust-inspired concepts through the TypeScript APIs exported by `@ffgenius/tsr`. The table maps concepts; see each module guide for details and differences.
 
-| Concept              | TSR / TypeScript                         | Common Rust idiom                   |
-| -------------------- | ---------------------------------------- | ----------------------------------- |
-| Optional value       | `Option<T>`                              | `Option<T>`                         |
-| Success or failure   | `Result<T, E>`                           | `Result<T, E>`                      |
-| Branch matching      | `match` and `caseOf` from `@tsr/pattern` | `match` expression                  |
-| Iterator composition | `Iter<T>`                                | `Iterator` trait                    |
-| Non-zero number      | Branded type and runtime constructor     | Standard types such as `NonZeroU32` |
-| Integer range        | `range` factories                        | `a..b`, `a..=b`                     |
+| Concept              | TSR / TypeScript                          | Common Rust idiom                   |
+| -------------------- | ----------------------------------------- | ----------------------------------- |
+| Optional value       | `Option<T>`                               | `Option<T>`                         |
+| Success or failure   | `Result<T, E>`                            | `Result<T, E>`                      |
+| Branch matching      | `match` and `caseOf` from `@ffgenius/tsr` | `match` expression                  |
+| Iterator composition | `Iter<T>`                                 | `Iterator` trait                    |
+| Non-zero number      | Branded type and runtime constructor      | Standard types such as `NonZeroU32` |
+| Integer range        | `range` factories                         | `a..b`, `a..=b`                     |
 
 ## Option
 
 ::: code-group
 
 ```ts [TypeScript]
-import { Option } from '@tsr/core'
+import { Option } from '@ffgenius/tsr'
 
 const greeting = Option.fromNullable('Ada').map((name) => `Hello, ${name}`)
 ```
@@ -32,7 +32,7 @@ let greeting = Some("Ada").map(|name| format!("Hello, {name}"));
 ::: code-group
 
 ```ts [TypeScript]
-import { Result } from '@tsr/core'
+import { Result } from '@ffgenius/tsr'
 
 const count = Result.ok('42')
   .map(Number)
@@ -65,7 +65,7 @@ TypeScript declares branches with `caseOf`; Rust has a built-in `match` expressi
 ::: code-group
 
 ```ts [TypeScript]
-import { caseOf, match, otherwise } from '@tsr/pattern'
+import { caseOf, match, otherwise } from '@ffgenius/tsr'
 
 type Status = 'ready' | 'busy'
 const status: Status = 'busy'
@@ -98,7 +98,7 @@ let label = match status {
 ::: code-group
 
 ```ts [TypeScript]
-import { Iter } from '@tsr/iter'
+import { Iter } from '@ffgenius/tsr'
 
 const total = Iter.from([1, 2, 3, 4])
   .filter((value) => value % 2 === 0)

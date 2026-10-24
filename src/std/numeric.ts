@@ -1,4 +1,4 @@
-import { Result } from '@tsr/core'
+import { Result } from '../core/index.js'
 
 declare const nonZeroBrand: unique symbol
 declare const positiveBrand: unique symbol
