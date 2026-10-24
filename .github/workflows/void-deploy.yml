@@ -27,9 +27,11 @@ jobs:
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 24.22.1
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Prepare Void project
+        run: pnpm exec void prepare
       - name: Build docs
         run: pnpm run docs:build
       - name: Deploy
